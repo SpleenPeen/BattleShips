@@ -7,7 +7,7 @@
         private static void Main(string[] args)
         {
             Board example = new Board(10, 10);
-            example.GenerateShips(new int[,] { { 3, 1 }, { 2, 2 }, { 1, 3 } });
+            example.GenerateShips(new int[,] { { 2, 1 }, { 2, 2 }, { 3, 3 } });
             example.DrawBoard();
         }
     }
@@ -23,6 +23,12 @@
 
         public void GenerateShips(int[,] ships)
         {
+            /*
+            Add a better way to find a field for a ship to spawn.
+            E.G. Find all the empty spaces and add them to a list, the rng the list to grab available options.
+            Need to make sure the game doesn't take ages to generate the board, or worse get stuck in an infinate loop.
+             */
+
             for (int ship = 0; ship < ships.GetLength(0); ship++)
             {
                 for (int count = 0; count < ships[ship, 0]; count++)

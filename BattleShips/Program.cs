@@ -7,7 +7,11 @@
         private static void Main(string[] args)
         {
             Board example = new Board(10, 10);
-            example.GenerateShips(new int[,] { { 2, 1 }, { 2, 2 }, { 3, 3 } });
+            List<int[]> ships = new List<int[]>();
+            ships.Add([2, 1]);
+            ships.Add([2, 2]);
+            ships.Add([3, 3]);
+            example.GenerateShips(ships);
             example.DrawBoard();
         }
     }
@@ -38,11 +42,8 @@
             }
         }
 
-        public void GenerateShips(int[,] ships) //ship == {3, 4} - meaning 3 ships of size 4
+        public void GenerateShips(List<int[]> ships) //ship == {3, 4} - meaning 3 ships of size 4
         {
-            //sort ships based on size - largest to smallest (less likely to get an impossible to fit sequence)
-
-
             //create a list with all avaialbe spaces
             List<int[]> available = new List<int[]>();
 
@@ -55,9 +56,9 @@
             }
 
             //loop through all the ships to add
-            for (int ship = 0; ship < ships.GetLength(0); ship++)
+            for (int shipType = 0; shipType < ships.Count(); shipType++)
             {
-                for (int count = 0; count < ships[ship, 0]; count++)
+                for (int count = 0; count < ships[shipType][0]; count++)
                 {
                     while (true)
                     {
@@ -74,14 +75,14 @@
                         //if ships would run off the board, get another position
                         if (vertical)
                         {
-                            if (y+ships[ship,1] >= _spaces.GetLength(0))
+                            if (y+ships[shipType][1] >= _spaces.GetLength(0))
                             {
                                 continue;
                             }
                         }
                         else
                         {
-                            if (x + ships[ship, 1] >= _spaces.GetLength(1))
+                            if (x + ships[shipType][1] >= _spaces.GetLength(1))
                             {
                                 continue;
                             }
@@ -89,7 +90,7 @@
 
                         //check if all the spaces are not already taken up
                         bool valid = true;
-                        for (int i = 0; i < ships[ship, 1]; i++)
+                        for (int i = 0; i < ships[shipType][1]; i++)
                         {
                             //check for vertical spaces
                             if (vertical)
@@ -113,7 +114,7 @@
                             continue;
 
                         //add to board
-                        for (int i = 0; i < ships[ship, 1]; i++)
+                        for (int i = 0; i < ships[shipType][1]; i++)
                         {
                             if (vertical)
                             {

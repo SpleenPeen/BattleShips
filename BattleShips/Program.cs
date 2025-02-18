@@ -40,6 +40,20 @@
 
         public void GenerateShips(int[,] ships) //ship == {3, 4} - meaning 3 ships of size 4
         {
+            //sort ships based on size - largest to smallest (less likely to get an impossible to fit sequence)
+
+
+            //create a list with all avaialbe spaces
+            List<int[]> available = new List<int[]>();
+
+            for (int y = 0; y < _spaces.GetLength(0); y++)
+            {
+                for (int x = 0; x < _spaces.GetLength(1); x++)
+                {
+                    available.Add([y,x]);
+                }
+            }
+
             //loop through all the ships to add
             for (int ship = 0; ship < ships.GetLength(0); ship++)
             {
@@ -48,8 +62,9 @@
                     while (true)
                     {
                         //get random position
-                        int x = Program.RNG.Next(_spaces.GetLength(1));
-                        int y = Program.RNG.Next(_spaces.GetLength(0));
+                        int availableInd = Program.RNG.Next(available.Count());
+                        int y = available[availableInd][0];
+                        int x = available[availableInd][1];
 
                         //randomize whether ship is vertical or horizontal 
                         bool vertical = false;
@@ -103,9 +118,11 @@
                             if (vertical)
                             {
                                 _spaces[y + i, x] = SpaceStates.ship;
+                                available.Remove([y+i, x]);
                                 continue;
                             }
                             _spaces[y, x + i] = SpaceStates.ship;
+                            available.Remove([y, x+i]);
                         }
                         break;
                     }

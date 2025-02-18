@@ -13,6 +13,14 @@
             ships.Add([3, 3]);
             example.GenerateShips(ships);
             example.DrawBoard();
+
+            while (true)
+            {
+                Console.ReadKey();
+                Console.Clear();
+                example.FireAt(RNG.Next(example.Width), RNG.Next(example.Height));
+                example.DrawBoard();
+            }
         }
     }
 
@@ -40,6 +48,17 @@
                     _spaces[y, x] = SpaceStates.empty;
                 }
             }
+        }
+
+        public void FireAt(int x, int y)
+        {
+            x = Math.Min(x, _spaces.GetLength(1));
+            y = Math.Min(y, _spaces.GetLength(0));
+
+            if (_spaces[y,x] == SpaceStates.empty)
+                _spaces[y,x] = SpaceStates.miss;
+            if (_spaces[y, x] == SpaceStates.ship)
+                _spaces[y, x] = SpaceStates.hit;
         }
 
         public void GenerateShips(List<int[]> ships) //ship == {3, 4} - meaning 3 ships of size 4
@@ -179,6 +198,16 @@
 
                 DrawInbetweenLine();
             }
+        }
+
+        public int Width
+        {
+            get { return _spaces.GetLength(1); }
+        }
+
+        public int Height
+        {
+            get { return _spaces.GetLength(0); }
         }
     }
 }

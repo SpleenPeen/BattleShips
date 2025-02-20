@@ -20,6 +20,7 @@ namespace BattleShips
         GameState _curState;
         int[] _selected;
         string _padding;
+        List<int> _ships;
 
         public GameScreen()
         {
@@ -40,6 +41,9 @@ namespace BattleShips
         {
             switch (_curState)
             {
+                case GameState.ShipAllocation:
+                    ShipAlloUpdate();
+                    break;
                 case GameState.Gameplay:
                     GameplayUpdate();
                     break;
@@ -47,6 +51,11 @@ namespace BattleShips
                     GameoverUpdate();
                     break;
             }
+        }
+
+        private void ShipAlloUpdate()
+        {
+            //do this next
         }
 
         private void GameoverUpdate()

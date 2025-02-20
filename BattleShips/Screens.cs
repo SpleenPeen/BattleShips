@@ -72,12 +72,10 @@ namespace BattleShips
         private void PrintPadded(string strng1, string strng2)
         {
             var output = strng1;
-            var line = _playerBoard.GetDrawLines()[0];
+            var width = _playerBoard.WidthString;
 
-            for (int i = output.Length; i < line.Length; i++)
-            {
+            for (int i = output.Length; i < width; i++)
                 output += " ";
-            }
             output += _padding;
             output += strng2;
 

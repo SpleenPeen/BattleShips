@@ -236,5 +236,13 @@ namespace BattleShips
         {
             get { return (float)Math.Round( (float)_shipsHit / _shotsFired*100, 1); }
         }
+
+        public int WidthString
+        {
+            get
+            {
+                return _spaces.GetLength(1) * 4 + 1;
+            }
+        }
     }
 }

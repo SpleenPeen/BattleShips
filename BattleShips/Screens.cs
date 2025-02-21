@@ -20,7 +20,7 @@ namespace BattleShips
         GameState _curState;
         int[] _selected;
         string _padding;
-        List<int> _ships;
+        List<int[]> _ships;
         int[] _origin;
 
         public GameScreen()
@@ -31,7 +31,6 @@ namespace BattleShips
             _selected = [0, 0];
             _enemyBoard = new Board(10, 10);
             _playerBoard = new Board(10, 10);
-            List<int[]> ships = new List<int[]>();
         }
 
         public void Update()
@@ -71,6 +70,7 @@ namespace BattleShips
 
             var key = Console.ReadKey().Key;
 
+            //theres a lot of repeating code in the switch case for movement, come back to if you have time
             switch (key)
             {
                 //setting origin point
@@ -84,13 +84,26 @@ namespace BattleShips
                     }
                     else
                     {
+                        int shipSize = 0;
                         for (int y = Math.Min(_origin[1], _selected[1]); y <= Math.Max(_selected[1], _origin[1]); y++)
                         {
                             for (int x = Math.Min(_origin[0], _selected[0]); x <= Math.Max(_selected[0], _origin[0]); x++)
                             {
                                 _playerBoard.SetSpaceStatus(x, y, Board.SpaceStates.ship);
+                                shipSize++;
                             }
                         }
+                        bool found = false;
+                        foreach (int[] ship in _ships)
+                        {
+                            if (ship[1] == shipSize)
+                            {
+                                ship[0]++;
+                                found = true;
+                            }
+                        }
+                        if (!found)
+                            _ships.Add([1, shipSize]);
                         _origin[0] = -1;
                     }
                     break;

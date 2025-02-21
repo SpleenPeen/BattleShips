@@ -98,22 +98,20 @@ namespace BattleShips
                 case ConsoleKey.LeftArrow:
                     if (_origin[0] >= 0)
                     {
-                        if (_origin != _selected)
-                        {
-                            if (_origin[1] != _selected[1])
-                                break;
-                        }
+                        if (_origin[1] != _selected[1])
+                            break;
+                        if (_playerBoard.GetSpaceState(Math.Max(0, _selected[0] - 1), _selected[1]) == Board.SpaceStates.ship)
+                            break;
                     }
                     _selected[0] = Math.Max(0, _selected[0]-1);
                     break;
                 case ConsoleKey.RightArrow:
                     if (_origin[0] >= 0)
                     {
-                        if (_origin != _selected)
-                        {
-                            if (_origin[1] != _selected[1])
-                                break;
-                        }
+                        if (_origin[1] != _selected[1])
+                            break;
+                        if (_playerBoard.GetSpaceState(Math.Min(_playerBoard.Width - 1, _selected[0] + 1), _selected[1]) == Board.SpaceStates.ship)
+                            break;
                     }
                     _selected[0] = Math.Min(_playerBoard.Width-1, _selected[0]+1);
                     break;
@@ -121,22 +119,20 @@ namespace BattleShips
                 case ConsoleKey.UpArrow:
                     if (_origin[0] >= 0)
                     {
-                        if (_origin != _selected)
-                        {
-                            if (_origin[0] != _selected[0])
-                                break;
-                        }
+                        if (_origin[0] != _selected[0])
+                            break;
+                        if (_playerBoard.GetSpaceState(_selected[0], Math.Max(0, _selected[1] - 1)) == Board.SpaceStates.ship)
+                            break;
                     }
                     _selected[1] = Math.Max(0, _selected[1]-1);
                     break;
                 case ConsoleKey.DownArrow:
                     if (_origin[0] >= 0)
                     {
-                        if (_origin != _selected)
-                        {
-                            if (_origin[0] != _selected[0])
-                                break;
-                        }
+                        if (_origin[0] != _selected[0])
+                            break;
+                        if (_playerBoard.GetSpaceState(_selected[0], Math.Min(_playerBoard.Height - 1, _selected[1] + 1)) == Board.SpaceStates.ship)
+                            break;
                     }
                     _selected[1] = Math.Min(_playerBoard.Height-1, _selected[1]+1);
                     break;

@@ -212,6 +212,26 @@ namespace BattleShips
             return lines.ToArray();
         }
 
+        public int GetXPosStrng(int x)
+        {
+            return 2 + 4 * x;
+        }
+
+        public int GetYPosStrng(int y)
+        {
+            return 1 + 2 * y;
+        }
+
+        public SpaceStates GetSpaceState(int x, int y)
+        {
+            return _spaces[y, x];
+        }
+
+        public void SetSpaceStatus(int x, int y, SpaceStates state)
+        {
+            _spaces[y, x] = state;
+        }
+
         public int Width
         {
             get { return _spaces.GetLength(1); }

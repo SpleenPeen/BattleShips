@@ -21,20 +21,17 @@ namespace BattleShips
         int[] _selected;
         string _padding;
         List<int> _ships;
+        int[] _origin;
 
         public GameScreen()
         {
+            _origin = [-1, 0];
             _padding = "  ";
-            _curState = GameState.Gameplay;
+            _curState = GameState.ShipAllocation;
             _selected = [0, 0];
             _enemyBoard = new Board(10, 10);
             _playerBoard = new Board(10, 10);
             List<int[]> ships = new List<int[]>();
-            ships.Add([2, 1]);
-            ships.Add([2, 2]);
-            ships.Add([3, 3]);
-            _enemyBoard.GenerateShips(ships);
-            _playerBoard.GenerateShips(ships); 
         }
 
         public void Update()
@@ -55,7 +52,95 @@ namespace BattleShips
 
         private void ShipAlloUpdate()
         {
-            //do this next
+            //draw player board
+            Console.WriteLine("Your Board");
+            var drawLines = _playerBoard.GetDrawLines(_selected);
+            if (_origin[0] >= 0)
+            {
+                for (int y = Math.Min(_origin[1], _selected[1]); y <= Math.Max(_selected[1], _origin[1]); y++)
+                {
+                    var curLine = drawLines[_playerBoard.GetYPosStrng(y)].ToCharArray();
+                    for (int x = Math.Min(_origin[0], _selected[0]); x <= Math.Max(_selected[0], _origin[0]); x++)
+                    {
+                        curLine[_playerBoard.GetXPosStrng(x)] = 'O';
+                    }
+                    drawLines[_playerBoard.GetYPosStrng(y)] = new string(curLine);
+                }
+            }
+            DrawStrings(drawLines);
+
+            var key = Console.ReadKey().Key;
+
+            switch (key)
+            {
+                //setting origin point
+                case ConsoleKey.Spacebar:
+                    if (_origin[0] < 0)
+                    {
+                        if (_playerBoard.GetSpaceState(_selected[0], _selected[1]) == Board.SpaceStates.ship)
+                            break;
+                        _origin[0] = _selected[0];
+                        _origin[1] = _selected[1];
+                    }
+                    else
+                    {
+                        for (int y = Math.Min(_origin[1], _selected[1]); y <= Math.Max(_selected[1], _origin[1]); y++)
+                        {
+                            for (int x = Math.Min(_origin[0], _selected[0]); x <= Math.Max(_selected[0], _origin[0]); x++)
+                            {
+                                _playerBoard.SetSpaceStatus(x, y, Board.SpaceStates.ship);
+                            }
+                        }
+                        _origin[0] = -1;
+                    }
+                    break;
+                //horizontal movement
+                case ConsoleKey.LeftArrow:
+                    if (_origin[0] >= 0)
+                    {
+                        if (_origin != _selected)
+                        {
+                            if (_origin[1] != _selected[1])
+                                break;
+                        }
+                    }
+                    _selected[0] = Math.Max(0, _selected[0]-1);
+                    break;
+                case ConsoleKey.RightArrow:
+                    if (_origin[0] >= 0)
+                    {
+                        if (_origin != _selected)
+                        {
+                            if (_origin[1] != _selected[1])
+                                break;
+                        }
+                    }
+                    _selected[0] = Math.Min(_playerBoard.Width-1, _selected[0]+1);
+                    break;
+                //vertical movement
+                case ConsoleKey.UpArrow:
+                    if (_origin[0] >= 0)
+                    {
+                        if (_origin != _selected)
+                        {
+                            if (_origin[0] != _selected[0])
+                                break;
+                        }
+                    }
+                    _selected[1] = Math.Max(0, _selected[1]-1);
+                    break;
+                case ConsoleKey.DownArrow:
+                    if (_origin[0] >= 0)
+                    {
+                        if (_origin != _selected)
+                        {
+                            if (_origin[0] != _selected[0])
+                                break;
+                        }
+                    }
+                    _selected[1] = Math.Min(_playerBoard.Height-1, _selected[1]+1);
+                    break;
+            }
         }
 
         private void GameoverUpdate()

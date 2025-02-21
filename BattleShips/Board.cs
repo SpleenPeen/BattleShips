@@ -230,6 +230,8 @@ namespace BattleShips
         public void SetSpaceStatus(int x, int y, SpaceStates state)
         {
             _spaces[y, x] = state;
+            if (state == SpaceStates.ship)
+                _shipSpaces++;
         }
 
         public int Width

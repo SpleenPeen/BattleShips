@@ -31,6 +31,7 @@ namespace BattleShips
             _selected = [0, 0];
             _enemyBoard = new Board(10, 10);
             _playerBoard = new Board(10, 10);
+            _ships = new List<int[]>();
         }
 
         public void Update()
@@ -149,6 +150,13 @@ namespace BattleShips
                     }
                     _selected[1] = Math.Min(_playerBoard.Height-1, _selected[1]+1);
                     break;
+                case ConsoleKey.Enter:
+                    if (_ships.Count() > 0)
+                    {
+                        _enemyBoard.GenerateShips(_ships);
+                        _curState = GameState.Gameplay;
+                    }
+                    break;
             }
         }
 
@@ -160,6 +168,7 @@ namespace BattleShips
             else
                 Console.WriteLine("You Lost...");
             Console.WriteLine();
+            PrintPadded("Enemy Board", "Your Board");
 
             //draw the board
             DrawStrings(CombineStrings(_enemyBoard.GetDrawLines(), _playerBoard.GetDrawLines(), _padding));

@@ -189,7 +189,7 @@ namespace BattleShips
             return str;
         }
 
-        public string[] GetDrawLines(int[]? sel = null, bool hidden = false)
+        public string[] GetDrawLines(Vector2? sel = null, bool hidden = false)
         {
             List<string> lines = new List<string>();
 
@@ -223,7 +223,7 @@ namespace BattleShips
                             break;
                     }
 
-                    if (sel != null && sel[0] == x && sel[1] == y)
+                    if (sel != null && sel.x == x && sel.y == y)
                         fieldContent = "H";
 
                     //if its the first field print border first

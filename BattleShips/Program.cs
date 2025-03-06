@@ -12,6 +12,18 @@
 
         public Vector2() : this(0, 0) { }
 
+        public void Add(Vector2 other)
+        {
+            _x += other.x;
+            _y += other.y;
+        }
+
+        public void Minus(Vector2 other)
+        {
+            _x -= other.x;
+            _y -= other.y;
+        }
+
         public static Vector2 GetMovementVector(ConsoleKey key)
         {
             var move = new Vector2();

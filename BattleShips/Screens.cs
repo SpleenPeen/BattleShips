@@ -19,17 +19,17 @@ namespace BattleShips
         Board _playerBoard;
         Board _enemyBoard;
         GameState _curState;
-        int[] _selected;
+        Vector2 _selected;
         string _padding;
         List<int[]> _ships;
-        int[] _origin;
+        Vector2 _origin;
 
         public GameScreen()
         {
-            _origin = [-1, 0];
+            _origin = new Vector2(-1, 0);
             _padding = "  ";
             _curState = GameState.BoardAllocation;
-            _selected = [0, 0];
+            _selected = new Vector2();
             _ships = new List<int[]>();
             _playerBoard = new Board(10, 10);
             _enemyBoard = new Board();
@@ -78,12 +78,13 @@ namespace BattleShips
             //draw player board
             Console.WriteLine("Your Board");
             var drawLines = _playerBoard.GetDrawLines(_selected);
-            if (_origin[0] >= 0)
+            //change currently selected space fields
+            if (_origin.x >= 0)
             {
-                for (int y = Math.Min(_origin[1], _selected[1]); y <= Math.Max(_selected[1], _origin[1]); y++)
+                for (int y = Math.Min(_origin.y, _selected.y); y <= Math.Max(_selected.y, _origin.y); y++)
                 {
                     var curLine = drawLines[_playerBoard.GetYPosStrng(y)].ToCharArray();
-                    for (int x = Math.Min(_origin[0], _selected[0]); x <= Math.Max(_selected[0], _origin[0]); x++)
+                    for (int x = Math.Min(_origin.x, _selected.x); x <= Math.Max(_selected.x, _origin.x); x++)
                     {
                         curLine[_playerBoard.GetXPosStrng(x)] = 'O';
                     }
@@ -94,29 +95,33 @@ namespace BattleShips
 
             var key = Console.ReadKey().Key;
 
-            //theres a lot of repeating code in the switch case for movement, come back to if you have time
+            //handle keypress
+            //handle starting selection, ending selection and confirming selection
             switch (key)
             {
                 //setting origin point
                 case ConsoleKey.Spacebar:
-                    if (_origin[0] < 0)
+                    if (_origin.x < 0)
                     {
-                        if (_playerBoard.GetSpaceState(_selected[0], _selected[1]) == Board.SpaceStates.ship)
+                        if (_playerBoard.GetSpaceState(_selected.x, _selected.x) == Board.SpaceStates.ship)
                             break;
-                        _origin[0] = _selected[0];
-                        _origin[1] = _selected[1];
+                        _origin.x = _selected.x;
+                        _origin.y = _selected.y;
                     }
                     else
                     {
+                        //change all selected spaces to ship spaces
                         int shipSize = 0;
-                        for (int y = Math.Min(_origin[1], _selected[1]); y <= Math.Max(_selected[1], _origin[1]); y++)
+                        for (int y = Math.Min(_origin.y, _selected.y); y <= Math.Max(_selected.y, _origin.y); y++)
                         {
-                            for (int x = Math.Min(_origin[0], _selected[0]); x <= Math.Max(_selected[0], _origin[0]); x++)
+                            for (int x = Math.Min(_origin.x, _selected.x); x <= Math.Max(_selected.x, _origin.x); x++)
                             {
                                 _playerBoard.SetSpaceStatus(x, y, Board.SpaceStates.ship);
                                 shipSize++;
                             }
                         }
+
+                        //add current ship size to ships
                         bool found = false;
                         foreach (int[] ship in _ships)
                         {
@@ -128,51 +133,12 @@ namespace BattleShips
                         }
                         if (!found)
                             _ships.Add([1, shipSize]);
-                        _origin[0] = -1;
+
+                        //reset origin
+                        _origin.x = -1;
                     }
                     break;
-                //horizontal movement
-                case ConsoleKey.LeftArrow:
-                    if (_origin[0] >= 0)
-                    {
-                        if (_origin[1] != _selected[1])
-                            break;
-                        if (_playerBoard.GetSpaceState(Math.Max(0, _selected[0] - 1), _selected[1]) == Board.SpaceStates.ship)
-                            break;
-                    }
-                    _selected[0] = Math.Max(0, _selected[0]-1);
-                    break;
-                case ConsoleKey.RightArrow:
-                    if (_origin[0] >= 0)
-                    {
-                        if (_origin[1] != _selected[1])
-                            break;
-                        if (_playerBoard.GetSpaceState(Math.Min(_playerBoard.Width - 1, _selected[0] + 1), _selected[1]) == Board.SpaceStates.ship)
-                            break;
-                    }
-                    _selected[0] = Math.Min(_playerBoard.Width-1, _selected[0]+1);
-                    break;
-                //vertical movement
-                case ConsoleKey.UpArrow:
-                    if (_origin[0] >= 0)
-                    {
-                        if (_origin[0] != _selected[0])
-                            break;
-                        if (_playerBoard.GetSpaceState(_selected[0], Math.Max(0, _selected[1] - 1)) == Board.SpaceStates.ship)
-                            break;
-                    }
-                    _selected[1] = Math.Max(0, _selected[1]-1);
-                    break;
-                case ConsoleKey.DownArrow:
-                    if (_origin[0] >= 0)
-                    {
-                        if (_origin[0] != _selected[0])
-                            break;
-                        if (_playerBoard.GetSpaceState(_selected[0], Math.Min(_playerBoard.Height - 1, _selected[1] + 1)) == Board.SpaceStates.ship)
-                            break;
-                    }
-                    _selected[1] = Math.Min(_playerBoard.Height-1, _selected[1]+1);
-                    break;
+                //end selection
                 case ConsoleKey.Enter:
                     if (_ships.Count() > 0)
                     {
@@ -180,6 +146,32 @@ namespace BattleShips
                         _curState = GameState.Gameplay;
                     }
                     break;
+            }
+
+            //movement
+            //get new selected position
+            var move = Vector2.GetMovementVector(key);
+            Vector2 newSel = new Vector2(_selected.x, _selected.y);
+            newSel.Add(move);
+
+            //keep in bounds
+            newSel.x = Math.Clamp(newSel.x, 0, _playerBoard.Width - 1);
+            newSel.y = Math.Clamp(newSel.y, 0, _playerBoard.Height - 1);
+
+            if (_origin.x >= 0)
+            {
+                //horizontal
+                if (_selected.y == _origin.y && _playerBoard.GetSpaceState(newSel.x, _selected.y) == Board.SpaceStates.empty)
+                    _selected.x = newSel.x;
+
+                //vertical
+                if (_selected.x == _origin.x && _playerBoard.GetSpaceState(_selected.x, newSel.y) == Board.SpaceStates.empty)
+                    _selected.y = newSel.y;
+            }
+            else
+            {
+                //move selected
+                _selected = newSel;
             }
         }
 
@@ -241,43 +233,35 @@ namespace BattleShips
 
             var key = Console.ReadKey().Key;
 
-            switch (key)
+            //movement
+            var move = Vector2.GetMovementVector(key);
+            _selected.Add(move);
+            _selected.x = Math.Clamp(_selected.x, 0, _enemyBoard.Width-1);
+            _selected.y = Math.Clamp(_selected.y, 0, _enemyBoard.Height-1);
+
+            //fire
+            if (key == ConsoleKey.Spacebar)
             {
-                //movement
-                case ConsoleKey.UpArrow:
-                    _selected[1] = Math.Max(_selected[1] - 1, 0);
-                    break;
-                case ConsoleKey.DownArrow:
-                    _selected[1] = Math.Min(_selected[1] + 1, _enemyBoard.Height - 1);
-                    break;
-                case ConsoleKey.LeftArrow:
-                    _selected[0] = Math.Max(_selected[0] - 1, 0);
-                    break;
-                case ConsoleKey.RightArrow:
-                    _selected[0] = Math.Min(_selected[0] + 1, _enemyBoard.Width - 1);
-                    break;
-                //fire
-                case ConsoleKey.Spacebar:
-                    //fire where player has selected
-                    if (!_enemyBoard.FireAt(_selected[0], _selected[1]))
-                        break;
-                    if (_enemyBoard.Won)
-                    {
-                        _curState = GameState.GameOver;
-                        break;
-                    }
+                //fire where player has selected
+                if (!_enemyBoard.FireAt(_selected.x, _selected.y))
+                    return;
+                if (_enemyBoard.Won)
+                {
+                    _curState = GameState.GameOver;
+                    return;
+                }
 
-                    //keep randomly firing at the player until a viable space is found
-                    while (!_playerBoard.FireAt(Program.RNG.Next(_playerBoard.Width), Program.RNG.Next(_playerBoard.Height)))
-                    {
-                    }
+                //keep randomly firing at the player until a viable space is found
+                while (!_playerBoard.FireAt(Program.RNG.Next(_playerBoard.Width), Program.RNG.Next(_playerBoard.Height)))
+                {
+                }
 
-                    if (_playerBoard.Won)
-                    {
-                        _curState = GameState.GameOver;
-                        break;
-                    }
-                    break;
+                if (_playerBoard.Won)
+                {
+                    _curState = GameState.GameOver;
+                    return;
+                }
+                return;
             }
         }
     }

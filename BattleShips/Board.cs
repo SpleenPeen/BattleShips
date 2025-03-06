@@ -81,11 +81,11 @@ namespace BattleShips
 
         public void GenerateShips(List<int[]> ships) //ship == {3, 4} - meaning 3 ships of size 4
         {
-            //calculate ship spaces - could be done while chaning spaces, but it doesnt really matter
+            //calculate ship spaces - could be done while changing spaces, but it has a miniscule impact on performence
             foreach (int[] ship in ships)
                 _shipSpaces += ship[0] * ship[1];
 
-            //create a list with all avaialbe spaces
+            //create a list with all available spaces
             List<int[]> available = new List<int[]>();
 
             for (int y = 0; y < _spaces.GetLength(0); y++)
@@ -101,8 +101,13 @@ namespace BattleShips
             {
                 for (int count = 0; count < ships[shipType][0]; count++)
                 {
+                    //create a counter to keep track of how many times the ship tried to place
+                    int counter = 0;
                     while (true)
                     {
+                        //increase counter
+                        counter++;
+
                         //get random position
                         int availableInd = Program.RNG.Next(available.Count());
                         int y = available[availableInd][0];
@@ -116,14 +121,14 @@ namespace BattleShips
                         //if ships would run off the board, get another position
                         if (vertical)
                         {
-                            if (y + ships[shipType][1] >= _spaces.GetLength(0))
+                            if (y + ships[shipType][1]-1 >= _spaces.GetLength(0))
                             {
                                 continue;
                             }
                         }
                         else
                         {
-                            if (x + ships[shipType][1] >= _spaces.GetLength(1))
+                            if (x + ships[shipType][1]-1 >= _spaces.GetLength(1))
                             {
                                 continue;
                             }

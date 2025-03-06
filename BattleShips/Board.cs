@@ -22,20 +22,41 @@ namespace BattleShips
         int _shipsHit;
         int _shotsFired;
 
-        public Board(int width, int height)
+
+        public Board()
         {
             _shotsFired = 0;
             _shipSpaces = 0;
             _shipsHit = 0;
-            _spaces = new SpaceStates[height, width];
+        }
 
-            for (int y = 0; y < _spaces.GetLength(0); y++)
+        public Board(int width, int height) : this()
+        {
+            SetSize(width, height);
+        }
+
+        public void SetSize(int width, int height, bool keepShips = false)
+        {
+            if (width == 0 || height == 0)
+                return;
+
+            var newSpaces = new SpaceStates[height, width];
+
+            if (_spaces == null || !keepShips)
             {
-                for (int x = 0; x < _spaces.GetLength(1); x++)
+                _spaces = newSpaces;
+                return;
+            }
+
+            for (int y = 0; y < Math.Min(_spaces.GetLength(0), height); y++)
+            {
+                for (int x = 0; x < Math.Min(_spaces.GetLength(1), width); x++)
                 {
-                    _spaces[y, x] = SpaceStates.empty;
+                    newSpaces[x,y] = _spaces[x,y];
                 }
             }
+
+            _spaces = newSpaces;
         }
 
         public bool FireAt(int x, int y)

@@ -10,6 +10,7 @@ namespace BattleShips
     {
         enum GameState
         {
+            BoardAllocation,
             ShipAllocation,
             Gameplay,
             GameOver
@@ -27,17 +28,20 @@ namespace BattleShips
         {
             _origin = [-1, 0];
             _padding = "  ";
-            _curState = GameState.ShipAllocation;
+            _curState = GameState.BoardAllocation;
             _selected = [0, 0];
-            _enemyBoard = new Board(10, 10);
-            _playerBoard = new Board(10, 10);
             _ships = new List<int[]>();
+            _playerBoard = new Board(10, 10);
+            _enemyBoard = new Board();
         }
 
         public void Update()
         {
             switch (_curState)
             {
+                case GameState.BoardAllocation:
+                    BoardAlloUpdate();
+                    break;
                 case GameState.ShipAllocation:
                     ShipAlloUpdate();
                     break;
@@ -47,6 +51,25 @@ namespace BattleShips
                 case GameState.GameOver:
                     GameoverUpdate();
                     break;
+            }
+        }
+
+        private void BoardAlloUpdate()
+        {
+            DrawStrings(_playerBoard.GetDrawLines());
+
+            var key = Console.ReadKey().Key;
+
+            var newSize = Vector2.GetMovementVector(key);
+            newSize.x = Math.Max(1, _playerBoard.Width + newSize.x);
+            newSize.y = Math.Max(1, _playerBoard.Height + newSize.y);
+
+            _playerBoard.SetSize(newSize.x, newSize.y);
+
+            if (key == ConsoleKey.Enter)
+            {
+                _enemyBoard.SetSize(_playerBoard.Width, _playerBoard.Height);
+                _curState = GameState.ShipAllocation;
             }
         }
 

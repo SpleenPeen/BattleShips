@@ -103,7 +103,7 @@ namespace BattleShips
                 case ConsoleKey.Spacebar:
                     if (_origin.x < 0)
                     {
-                        if (_playerBoard.GetSpaceState(_selected.x, _selected.x) == Board.SpaceStates.ship)
+                        if (_playerBoard.GetSpaceState(_selected.x, _selected.y) == Board.SpaceStates.ship)
                             break;
                         _origin.x = _selected.x;
                         _origin.y = _selected.y;

@@ -12,6 +12,7 @@ namespace BattleShips
         {
             BoardAllocation,
             ShipAllocation,
+            DifficultyAllocation,
             Gameplay,
             GameOver
         }
@@ -23,6 +24,7 @@ namespace BattleShips
         string _padding;
         List<int[]> _ships;
         Vector2 _origin;
+        Menu _diffAloMenu;
 
         public GameScreen()
         {
@@ -33,6 +35,7 @@ namespace BattleShips
             _ships = new List<int[]>();
             _playerBoard = new Board(10, 10);
             _enemyBoard = new Board();
+            _diffAloMenu = new Menu(["Easy", "Medium", "Hard - haha"], 1);
         }
 
         public void Update()
@@ -44,6 +47,9 @@ namespace BattleShips
                     break;
                 case GameState.ShipAllocation:
                     ShipAlloUpdate();
+                    break;
+                case GameState.DifficultyAllocation:
+                    DifficultyAlloUpdate();
                     break;
                 case GameState.Gameplay:
                     GameplayUpdate();
@@ -70,6 +76,19 @@ namespace BattleShips
             {
                 _enemyBoard.SetSize(_playerBoard.Width, _playerBoard.Height);
                 _curState = GameState.ShipAllocation;
+            }
+        }
+
+        private void DifficultyAlloUpdate()
+        {
+            _diffAloMenu.DrawMenu();
+            var key = Console.ReadKey().Key;
+            var pressed = _diffAloMenu.UpdateMenu(key);
+
+            if (pressed != -1)
+            {
+                _enemyBoard.Diff = (Board.Difficulty)pressed;
+                _curState = GameState.Gameplay;
             }
         }
 
@@ -143,7 +162,7 @@ namespace BattleShips
                     if (_ships.Count() > 0)
                     {
                         _enemyBoard.GenerateShips(_ships);
-                        _curState = GameState.Gameplay;
+                        _curState = GameState.DifficultyAllocation;
                     }
                     break;
             }

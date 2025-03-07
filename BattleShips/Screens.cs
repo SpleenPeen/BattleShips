@@ -211,8 +211,32 @@ namespace BattleShips
 
         private void DrawStrings(string[] strings)
         {
+            //loop though all the lines
             foreach (string str in strings)
-                Console.WriteLine(str);
+            {
+                List<string> output = new List<string>();
+                foreach (char c in str.ToCharArray())
+                {
+                    //if the character is a hit or miss indicator
+                    if (c == Board.HitChar || c == Board.MissChar)
+                    {
+                        output.Add(c.ToString());
+                        output.Add("");
+                        continue;
+                    }
+                    output[output.Count() - 1] += c.ToString();
+                }
+                foreach (string seperated in output)
+                {
+                    if (seperated == Board.HitChar.ToString())
+                        Console.ForegroundColor = ConsoleColor.Green;
+                    else if (seperated == Board.MissChar.ToString())
+                        Console.ForegroundColor = ConsoleColor.Red;
+                    Console.Write(seperated);
+                    Console.ResetColor();
+                }
+                Console.WriteLine();
+            }
         }
 
         private string[] CombineStrings(string[] str1, string[] str2, string padding = "")

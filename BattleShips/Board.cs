@@ -22,6 +22,7 @@ namespace BattleShips
         int _shipsHit;
         int _shotsFired;
 
+        static char[] _displaySymbols = ['X', '*', 'O'];
 
         public Board()
         {
@@ -242,13 +243,13 @@ namespace BattleShips
                             if (hidden)
                                 fieldContent = " ";
                             else
-                                fieldContent = "O";
+                                fieldContent = ShipChar.ToString();
                             break;
                         case SpaceStates.miss:
-                            fieldContent = "*";
+                            fieldContent = MissChar.ToString();
                             break;
                         case SpaceStates.hit:
-                            fieldContent = "X";
+                            fieldContent = HitChar.ToString();
                             break;
                     }
 
@@ -287,6 +288,21 @@ namespace BattleShips
             _spaces[y, x] = state;
             if (state == SpaceStates.ship)
                 _shipSpaces++;
+        }
+
+        public static char HitChar
+        {
+            get { return _displaySymbols[0]; }
+        }
+
+        public static char MissChar
+        {
+            get { return _displaySymbols[1]; }
+        }
+
+        public static char ShipChar
+        {
+            get { return _displaySymbols[2]; }
         }
 
         public int Width

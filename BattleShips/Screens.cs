@@ -212,30 +212,39 @@ namespace BattleShips
         private void DrawStrings(string[] strings)
         {
             //loop though all the lines
-            foreach (string str in strings)
+            for (int i = 0; i < strings.Length; i++)
             {
-                List<string> output = new List<string>();
-                foreach (char c in str.ToCharArray())
+                //if not an inbetween line
+                if (i % 2 > 0)
                 {
-                    //if the character is a hit or miss indicator
-                    if (c == Board.HitChar || c == Board.MissChar)
+                    //split string when there is a hit or miss character
+                    List<string> output = new List<string>();
+                    output.Add("");
+                    foreach (char c in strings[i].ToCharArray())
                     {
-                        output.Add(c.ToString());
-                        output.Add("");
-                        continue;
+                        if (c == Board.HitChar || c == Board.MissChar)
+                        {
+                            output.Add(c.ToString());
+                            output.Add("");
+                            continue;
+                        }
+                        output[output.Count() - 1] += c.ToString();
                     }
-                    output[output.Count() - 1] += c.ToString();
+                    //write all the split strings, changing colour when its a miss or a hit
+                    foreach (string seperated in output)
+                    {
+                        if (seperated == Board.HitChar.ToString())
+                            Console.ForegroundColor = ConsoleColor.Green;
+                        else if (seperated == Board.MissChar.ToString())
+                            Console.ForegroundColor = ConsoleColor.Red;
+                        Console.Write(seperated);
+                        Console.ResetColor();
+                    }
+                    Console.WriteLine();
+                    continue;
                 }
-                foreach (string seperated in output)
-                {
-                    if (seperated == Board.HitChar.ToString())
-                        Console.ForegroundColor = ConsoleColor.Green;
-                    else if (seperated == Board.MissChar.ToString())
-                        Console.ForegroundColor = ConsoleColor.Red;
-                    Console.Write(seperated);
-                    Console.ResetColor();
-                }
-                Console.WriteLine();
+                //if its an inbetween line, just print the line
+                Console.WriteLine(strings[i]);
             }
         }
 

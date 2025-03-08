@@ -62,6 +62,9 @@ namespace BattleShips
 
         public bool FireAt(int x, int y)
         {
+            if (!WithinBounds(new Vector2(x,y)))
+                return false;
+
             _shotsFired++; //increase shots fired
             //check if miss
             if (_spaces[y, x] == SpaceStates.empty)
@@ -278,8 +281,10 @@ namespace BattleShips
             return 1 + 2 * y;
         }
 
-        public SpaceStates GetSpaceState(int x, int y)
+        public SpaceStates? GetSpaceState(int x, int y)
         {
+            if (!WithinBounds(new Vector2(x, y)))
+                return null;
             return _spaces[y, x];
         }
 
@@ -288,6 +293,15 @@ namespace BattleShips
             _spaces[y, x] = state;
             if (state == SpaceStates.ship)
                 _shipSpaces++;
+        }
+
+        public bool WithinBounds(Vector2 pos)
+        {
+            if (pos.x < 0 || pos.x >= Width)
+                return false;
+            if (pos.y < 0 || pos.y >= Height)
+                return false;
+            return true;
         }
 
         public static char HitChar

@@ -357,17 +357,90 @@ namespace BattleShips
                     FireEasy();
                     break;
                 case 1:
+                    FireMedium();
                     break;
                 case 2:
+                    FireHard(Math.Max(_playerBoard.Width, _playerBoard.Height)/2);
                     break;
             }
         }
 
-        private void FireEasy()
+        private void FireHard(int radius = 5)
+        {
+            if (_checkAround.Count() > 0)
+            {
+                FireAtCheckAroundSpaces();
+                return;
+            }
+
+            while(true)
+            {
+                var pos = _shotTargets[Program.RNG.Next(_shotTargets.Count())];
+                pos.x += Program.RNG.Next(-radius, radius);
+                pos.y += Program.RNG.Next(-radius, radius);
+                if (_playerBoard.FireAt(pos.x, pos.y))
+                {
+                    if (_playerBoard.GetSpaceState(pos.x, pos.y) == Board.SpaceStates.hit)
+                    {
+                        AddCheckSpaces(pos);
+                        _shotTargets.Remove(new Vector2(pos.x, pos.y));
+                    }
+                    break;
+                }
+            }
+        }
+
+        private void FireMedium()
+        {
+            if (_checkAround.Count() > 0)
+            {
+                FireAtCheckAroundSpaces();
+                return;
+            }
+
+            var firedAt = FireEasy();
+            if (_playerBoard.GetSpaceState(firedAt.x, firedAt.y) == Board.SpaceStates.hit)
+                AddCheckSpaces(firedAt);
+        }
+
+        private void FireAtCheckAroundSpaces()
+        {
+            if (_checkAround.Count() <= 0)
+                return;
+            var ind = Program.RNG.Next(_checkAround.Count());
+            var pos = new Vector2(_checkAround[ind].x, _checkAround[ind].y);
+            _playerBoard.FireAt(pos.x, pos.y);
+            if (_playerBoard.GetSpaceState(pos.x, pos.y) == Board.SpaceStates.hit)
+                AddCheckSpaces(pos);
+            _shotTargets.Remove(new Vector2(pos.x, pos.y));
+            _checkAround.RemoveAt(ind);
+        }
+
+        private void AddCheckSpaces(Vector2 spaceHit)
+        {
+            Vector2[] spacesToCheck =
+                [
+                    new Vector2(spaceHit.x-1, spaceHit.y),
+                    new Vector2(spaceHit.x+1, spaceHit.y),
+                    new Vector2(spaceHit.x, spaceHit.y-1),
+                    new Vector2(spaceHit.x, spaceHit.y+1)
+                ];
+
+            foreach (var space in spacesToCheck)
+            {
+                var state = _playerBoard.GetSpaceState(space.x, space.y);
+                if (state == Board.SpaceStates.empty || state == Board.SpaceStates.ship)
+                    _checkAround.Add(space);
+            }
+        }
+
+        private Vector2 FireEasy()
         {
             var ind = Program.RNG.Next(_shotTargets.Count());
-            _playerBoard.FireAt(_shotTargets[ind].x, _shotTargets[ind].y);
+            Vector2 posFired = _shotTargets[ind];
+            _playerBoard.FireAt(posFired.x, posFired.y);
             _shotTargets.RemoveAt(ind);
+            return posFired;
         }
     }
 }

@@ -15,15 +15,15 @@
             _defCol = ConsoleColor.DarkGray;
         }
 
-        public int UpdateMenu(ConsoleKey key)
+        public bool UpdateMenu(ConsoleKey key)
         {
             var move = Vector2.GetMovementVector(key);
 
             _sel = Math.Clamp(_sel + move.y, 0, _opts.Length-1);
 
             if (key == ConsoleKey.Spacebar || key == ConsoleKey.Enter)
-                return _sel;
-            return -1;
+                return true;
+            return false;
         }
 
         public void DrawMenu()
@@ -36,6 +36,11 @@
                 Console.WriteLine(_opts[i]);
                 Console.ResetColor();
             }
+        }
+
+        public int Selected
+        {
+            get { return _sel; }
         }
     }
 }

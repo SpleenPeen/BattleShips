@@ -25,9 +25,13 @@ namespace BattleShips
         List<int[]> _ships;
         Vector2 _origin;
         Menu _diffAloMenu;
+        List<Vector2> _shotTargets;
+        List<Vector2> _checkAround;
 
         public GameScreen()
         {
+            _shotTargets = new List<Vector2>();
+            _checkAround = new List<Vector2>();
             _origin = new Vector2(-1, 0);
             _padding = "  ";
             _curState = GameState.BoardAllocation;
@@ -83,12 +87,42 @@ namespace BattleShips
         {
             _diffAloMenu.DrawMenu();
             var key = Console.ReadKey().Key;
-            var pressed = _diffAloMenu.UpdateMenu(key);
 
-            if (pressed != -1)
+            if (_diffAloMenu.UpdateMenu(key))
             {
-                _enemyBoard.Diff = (Board.Difficulty)pressed;
+                PrepareShotTargets();
                 _curState = GameState.Gameplay;
+            }
+        }
+
+        private void PrepareShotTargets()
+        {
+            if (_diffAloMenu.Selected == 0 || _diffAloMenu.Selected == 1)
+                AllSpacesTargets();
+            else
+                ShipSpacesTargets();
+        }
+
+        private void AllSpacesTargets()
+        {
+            for (int y = 0; y < _playerBoard.Height; y++)
+            {
+                for (int x = 0; x < _playerBoard.Width; x++)
+                {
+                    _shotTargets.Add(new Vector2(x, y));
+                }
+            }
+        }
+
+        private void ShipSpacesTargets()
+        {
+            for (int y = 0; y < _playerBoard.Height; y++)
+            {
+                for (int x = 0; x < _playerBoard.Width; x++)
+                {
+                    if (_playerBoard.GetSpaceState(x, y) == Board.SpaceStates.ship)
+                        _shotTargets.Add(new Vector2(x, y));
+                }
             }
         }
 
@@ -304,9 +338,7 @@ namespace BattleShips
                 }
 
                 //keep randomly firing at the player until a viable space is found
-                while (!_playerBoard.FireAt(Program.RNG.Next(_playerBoard.Width), Program.RNG.Next(_playerBoard.Height)))
-                {
-                }
+                FireWithDifficulty();
 
                 if (_playerBoard.Won)
                 {
@@ -315,6 +347,27 @@ namespace BattleShips
                 }
                 return;
             }
+        }
+
+        private void FireWithDifficulty()
+        {
+            switch (_diffAloMenu.Selected)
+            {
+                case 0:
+                    FireEasy();
+                    break;
+                case 1:
+                    break;
+                case 2:
+                    break;
+            }
+        }
+
+        private void FireEasy()
+        {
+            var ind = Program.RNG.Next(_shotTargets.Count());
+            _playerBoard.FireAt(_shotTargets[ind].x, _shotTargets[ind].y);
+            _shotTargets.RemoveAt(ind);
         }
     }
 }

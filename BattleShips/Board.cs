@@ -17,24 +17,15 @@ namespace BattleShips
             hit
         }
 
-        public enum Difficulty
-        {
-            easy,
-            medium,
-            hard
-        }
-
         private SpaceStates[,] _spaces;
         int _shipSpaces;
         int _shipsHit;
         int _shotsFired;
-        Difficulty _diff;
 
         static char[] _displaySymbols = ['X', '*', 'O'];
 
         public Board()
         {
-            _diff = Difficulty.easy;
             _shotsFired = 0;
             _shipSpaces = 0;
             _shipsHit = 0;
@@ -87,11 +78,6 @@ namespace BattleShips
             }
             _shotsFired--; //if didnt fire take away from shots fired (as it was added at the start)
             return false;
-        }
-
-        public void FireAi()
-        {
-
         }
 
         private List<Vector2> AllSpaces
@@ -302,12 +288,6 @@ namespace BattleShips
             _spaces[y, x] = state;
             if (state == SpaceStates.ship)
                 _shipSpaces++;
-        }
-
-        public Difficulty Diff
-        {
-            get { return _diff; }
-            set { _diff = value; }
         }
 
         public static char HitChar

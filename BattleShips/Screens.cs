@@ -22,7 +22,7 @@ namespace BattleShips
         GameState _curState;
         Vector2 _selected;
         string _padding;
-        List<int[]> _ships;
+        List<Vector2> _ships;
         Vector2 _origin;
         Menu _diffAloMenu;
         List<Vector2> _shotTargets;
@@ -36,7 +36,7 @@ namespace BattleShips
             _padding = "  ";
             _curState = GameState.BoardAllocation;
             _selected = new Vector2();
-            _ships = new List<int[]>();
+            _ships = new List<Vector2>();
             _playerBoard = new Board(10, 10);
             _enemyBoard = new Board();
             _diffAloMenu = new Menu(["Easy", "Medium", "Hard - haha"], 1);
@@ -176,16 +176,16 @@ namespace BattleShips
 
                         //add current ship size to ships
                         bool found = false;
-                        foreach (int[] ship in _ships)
+                        foreach (Vector2 ship in _ships)
                         {
-                            if (ship[1] == shipSize)
+                            if (ship.y == shipSize)
                             {
-                                ship[0]++;
+                                ship.x++;
                                 found = true;
                             }
                         }
                         if (!found)
-                            _ships.Add([1, shipSize]);
+                            _ships.Add(new Vector2(1, shipSize));
 
                         //reset origin
                         _origin.x = -1;

@@ -101,11 +101,11 @@ namespace BattleShips
             }
         }
 
-        public void GenerateShips(List<int[]> ships) //ship == {3, 4} - meaning 3 ships of size 4
+        public void GenerateShips(List<Vector2> ships) //ship.x == amount of ships that size, ships.y == size of ship
         {
             //calculate ship spaces - could be done while changing spaces, but it has a miniscule impact on performence
-            foreach (int[] ship in ships)
-                _shipSpaces += ship[0] * ship[1];
+            foreach (Vector2 ship in ships)
+                _shipSpaces += ship.x * ship.y;
 
             //create a list with all available spaces
             List<Vector2> available = AllSpaces;
@@ -113,7 +113,7 @@ namespace BattleShips
             //loop through all the ships to add
             for (int shipType = 0; shipType < ships.Count(); shipType++)
             {
-                for (int count = 0; count < ships[shipType][0]; count++)
+                for (int count = 0; count < ships[shipType].x; count++)
                 {
                     //check if any pos is valid
                     var currentlyAvailable = new List<Vector2>(available);
@@ -150,18 +150,18 @@ namespace BattleShips
                             //if ships would run off the board, get another position
                             if (vertical)
                             {
-                                if (y + ships[shipType][1] - 1 >= Height)
+                                if (y + ships[shipType].y - 1 >= Height)
                                     continue;
                             }
                             else
                             {
-                                if (x + ships[shipType][1] - 1 >= Width)
+                                if (x + ships[shipType].y - 1 >= Width)
                                     continue;
                             }
 
                             //check if all the spaces are not already taken up
                             valid = true;
-                            for (int j = 0; j < ships[shipType][1]; j++)
+                            for (int j = 0; j < ships[shipType].y; j++)
                             {
                                 //check for vertical spaces
                                 if (vertical)
@@ -191,7 +191,7 @@ namespace BattleShips
                         }
 
                         //add to board
-                        for (int i = 0; i < ships[shipType][1]; i++)
+                        for (int i = 0; i < ships[shipType].y; i++)
                         {
                             int curX = x;
                             int curY = y;

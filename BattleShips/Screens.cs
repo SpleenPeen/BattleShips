@@ -407,13 +407,20 @@ namespace BattleShips
         {
             if (_checkAround.Count() <= 0)
                 return;
-            var ind = Program.RNG.Next(_checkAround.Count());
-            var pos = new Vector2(_checkAround[ind].x, _checkAround[ind].y);
-            _playerBoard.FireAt(pos.x, pos.y);
+
+            int ind;
+            Vector2 pos;
+            while (true)
+            {
+                ind = Program.RNG.Next(_checkAround.Count());
+                pos = new Vector2(_checkAround[ind].x, _checkAround[ind].y);
+                _checkAround.RemoveAt(ind);
+                if (_playerBoard.FireAt(pos.x, pos.y))
+                    break;
+            }
             if (_playerBoard.GetSpaceState(pos.x, pos.y) == Board.SpaceStates.hit)
                 AddCheckSpaces(pos);
             _shotTargets.Remove(new Vector2(pos.x, pos.y));
-            _checkAround.RemoveAt(ind);
         }
 
         private void AddCheckSpaces(Vector2 spaceHit)

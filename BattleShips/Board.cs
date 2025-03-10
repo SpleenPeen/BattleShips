@@ -101,8 +101,57 @@ namespace BattleShips
             }
         }
 
+        private void SortShips(List<Vector2> ships)
+        {
+            //sorting list
+            List<Vector2> sortedList = new List<Vector2>();
+            sortedList.Add(ships[0]);
+            for (int i = 1; i < ships.Count; i++)
+            {
+                int min = 0;
+                int max = sortedList.Count() - 1;
+                int curInd;
+
+                while (true)
+                {
+                    if (min == max)
+                        curInd = min;
+                    else
+                        curInd = min + (max - min) / 2;
+
+                    if (ships[i].y < sortedList[curInd].y)
+                    {
+                        max = curInd;
+                        if (min == max)
+                        {
+                            sortedList.Insert(curInd, ships[i]);
+                            break;
+                        }
+                    }
+                    else if (ships[i].y > sortedList[curInd].y)
+                    {
+                        if (min == curInd && min != max)
+                        {
+                            min++;
+                            continue;
+                        }
+                        min = curInd;
+                        if (min == max)
+                        {
+                            sortedList.Insert(curInd + 1, ships[i]);
+                            break;
+                        }
+                    }
+                }
+            }
+            ships = sortedList;
+        }
+
         public void GenerateShips(List<Vector2> ships) //ship.x == amount of ships that size, ships.y == size of ship
         {
+            //sort ships
+            SortShips(ships);
+
             //calculate ship spaces - could be done while changing spaces, but it has a miniscule impact on performence
             foreach (Vector2 ship in ships)
                 _shipSpaces += ship.x * ship.y;

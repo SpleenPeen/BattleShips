@@ -34,12 +34,18 @@ namespace BattleShips
             _checkAround = new List<Vector2>();
             _origin = new Vector2(-1, 0);
             _padding = "  ";
-            _curState = GameState.BoardAllocation;
+            _curState = GameState.DifficultyAllocation;
             _selected = new Vector2();
             _ships = new List<Vector2>();
             _playerBoard = new Board(10, 10);
             _enemyBoard = new Board();
-            _diffAloMenu = new Menu(["Easy", "Medium", "Hard - haha"], 1);
+            _diffAloMenu = new Menu(
+                options: ["Easy", "Medium", "Hard"], 
+                desc: "Select your difficulty for this game.", 
+                selected: 1, 
+                width: 28,
+                outline: true,
+                centred: true);
         }
 
         public void Update()

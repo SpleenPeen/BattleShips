@@ -6,13 +6,28 @@
         int _sel;
         ConsoleColor _selCol;
         ConsoleColor _defCol;
+        bool _outline;
+        bool _centred;
+        string _desc;
+        int _width;
 
-        public Menu(string[] options, int startPos = 0)
+        public Menu(string[] options, string desc = "", int selected = 0, int width = 0, bool outline = false, bool centred = false)
         {
+            _centred = centred;
+            _outline = outline;
             _opts = options;
-            _sel = Math.Clamp(startPos, 0, _opts.Length-1);
+            _sel = Math.Clamp(selected, 0, _opts.Length-1);
             _selCol = ConsoleColor.White;
             _defCol = ConsoleColor.DarkGray;
+            _desc = desc;
+            
+            //get width of menu
+            foreach (var item in _opts)
+                _width = Math.Max(_width, item.Length);
+            _width += 2; //for selection indicator
+            if (_outline)
+                _width += 2; //for padding from outline
+            _width = Math.Max(width, _width);
         }
 
         public bool UpdateMenu(ConsoleKey key)
@@ -28,14 +43,100 @@
 
         public void DrawMenu()
         {
+            if (_outline)
+            {
+                DrawEdge();
+                DrawInbetween();
+            }
+
+            //draw desc
+            var words = _desc.Split(' ');
+            var curLength = 1;
+
+            if (_outline)
+                Console.Write("| ");
+            for (int i = 0; i < words.Length; i++)
+            {
+                if (curLength + words[i].Length < _width)
+                    Console.Write(words[i] + " ");
+                else
+                {
+                    if (_outline)
+                    {
+                        FinishOffLine(curLength);
+                        Console.Write("| ");
+                    }
+                    else
+                        Console.WriteLine("");
+                    Console.Write(words[i] + " ");
+                    curLength = 1;
+                }
+                curLength += words[i].Length + 1;
+            }
+            if (_outline)
+                FinishOffLine(curLength);
+
+            if (_outline)
+                DrawInbetween();
+            else
+            {
+                Console.WriteLine("");
+                Console.WriteLine("");
+            }
+
+            //draw opts
             for (int i = 0; i < _opts.Length; i++)
             {
+                if (_outline) 
+                    Console.Write("| ");
                 Console.ForegroundColor = _defCol;
                 if (i == _sel)
+                {
                     Console.ForegroundColor = _selCol;
-                Console.WriteLine(_opts[i]);
+                    Console.Write("> ");
+                }
+                Console.Write(_opts[i]);
                 Console.ResetColor();
+
+                if (_outline)
+                {
+                    curLength = _opts[i].Length + 1;
+                    if (i == _sel)
+                        curLength += 2;
+                    FinishOffLine(curLength);
+                }
+                else
+                    Console.WriteLine("");
             }
+
+            if (_outline)
+            {
+                DrawInbetween();
+                DrawEdge();
+            }
+        }
+
+        private void FinishOffLine(int curLength)
+        {
+            for (int j = curLength; j < _width; j++)
+                Console.Write(" ");
+            Console.WriteLine("|");
+        }
+
+        private void DrawInbetween()
+        {
+            Console.Write("|");
+            for (int i = 0; i < _width; i++)
+                Console.Write(" ");
+            Console.WriteLine("|");
+        }
+
+        private void DrawEdge()
+        {
+            Console.Write("+");
+            for (int i = 0; i < _width; i++)
+                Console.Write("-");
+            Console.WriteLine("+");
         }
 
         public int Selected

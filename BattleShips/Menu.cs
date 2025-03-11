@@ -43,16 +43,25 @@
 
         private void CentreLeftPos()
         {
+            if (!_centred)
+                return;
             Console.SetCursorPosition(Console.WindowWidth/2-(_width+2)/2, Console.GetCursorPosition().Top);
         }
 
         public void DrawMenu()
         {
-            int topPos = Console.WindowHeight / 2 - (_opts.Length + 2 + (_desc.Length/(_width-2)))/2;
-            if (_desc.Length > 0)
-                topPos -= 1;
-            CentreLeftPos();
-            Console.SetCursorPosition(Console.GetCursorPosition().Left, topPos);
+            var curLength = 1;
+
+            if (_centred)
+            {
+                int topPos = Console.WindowHeight / 2 - (_opts.Length + 2 + (int)Math.Ceiling((float)_desc.Length / (_width - 2))) / 2 - 2;
+                if (_desc.Length > 0)
+                    topPos -= 1;
+                CentreLeftPos();
+
+                Console.SetCursorPosition(Console.GetCursorPosition().Left, topPos);
+            }
+
             if (_outline)
             {
                 DrawEdge();
@@ -60,38 +69,44 @@
             }
 
             //draw desc
-            var words = _desc.Split(' ');
-            var curLength = 1;
-
-            if (_outline)
-                Console.Write("| ");
-            for (int i = 0; i < words.Length; i++)
+            if (_desc.Length > 0)
             {
-                if (curLength + words[i].Length < _width)
-                    Console.Write(words[i] + " ");
+                var words = _desc.Split(' ');
+
+                if (_outline)
+                    Console.Write("| ");
+                for (int i = 0; i < words.Length; i++)
+                {
+                    if (curLength + words[i].Length < _width)
+                        Console.Write(words[i] + " ");
+                    else
+                    {
+                        if (_outline)
+                        {
+                            FinishOffLine(curLength);
+                            Console.Write("| ");
+                        }
+                        else
+                        {
+                            Console.WriteLine("");
+                            CentreLeftPos();
+                        }
+                        Console.Write(words[i] + " ");
+                        curLength = 1;
+                    }
+                    curLength += words[i].Length + 1;
+                }
+                if (_outline)
+                    FinishOffLine(curLength);
+
+                if (_outline)
+                    DrawInbetween();
                 else
                 {
-                    if (_outline)
-                    {
-                        FinishOffLine(curLength);
-                        Console.Write("| ");
-                    }
-                    else
-                        Console.WriteLine("");
-                    Console.Write(words[i] + " ");
-                    curLength = 1;
+                    Console.WriteLine("");
+                    Console.WriteLine("");
+                    CentreLeftPos();
                 }
-                curLength += words[i].Length + 1;
-            }
-            if (_outline)
-                FinishOffLine(curLength);
-
-            if (_outline)
-                DrawInbetween();
-            else
-            {
-                Console.WriteLine("");
-                Console.WriteLine("");
             }
 
             //draw opts

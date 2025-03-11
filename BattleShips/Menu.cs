@@ -41,8 +41,18 @@
             return false;
         }
 
+        private void CentreLeftPos()
+        {
+            Console.SetCursorPosition(Console.WindowWidth/2-(_width+2)/2, Console.GetCursorPosition().Top);
+        }
+
         public void DrawMenu()
         {
+            int topPos = Console.WindowHeight / 2 - (_opts.Length + 2 + (_desc.Length/(_width-2)))/2;
+            if (_desc.Length > 0)
+                topPos -= 1;
+            CentreLeftPos();
+            Console.SetCursorPosition(Console.GetCursorPosition().Left, topPos);
             if (_outline)
             {
                 DrawEdge();
@@ -106,7 +116,10 @@
                     FinishOffLine(curLength);
                 }
                 else
+                {
                     Console.WriteLine("");
+                    CentreLeftPos();
+                }
             }
 
             if (_outline)
@@ -121,6 +134,7 @@
             for (int j = curLength; j < _width; j++)
                 Console.Write(" ");
             Console.WriteLine("|");
+            CentreLeftPos();
         }
 
         private void DrawInbetween()
@@ -129,6 +143,7 @@
             for (int i = 0; i < _width; i++)
                 Console.Write(" ");
             Console.WriteLine("|");
+            CentreLeftPos();
         }
 
         private void DrawEdge()
@@ -137,6 +152,7 @@
             for (int i = 0; i < _width; i++)
                 Console.Write("-");
             Console.WriteLine("+");
+            CentreLeftPos();
         }
 
         public int Selected

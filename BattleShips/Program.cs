@@ -41,6 +41,13 @@
             return move;
         }
 
+        public bool Equals(Vector2 v)
+        {
+            if (v.x == x && v.y == y)
+                return true;
+            return false;
+        }
+
         public int x
         {
             get { return _x; }

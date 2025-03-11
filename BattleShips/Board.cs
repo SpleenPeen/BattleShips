@@ -108,8 +108,8 @@ namespace BattleShips
             sortedList.Add(ships[0]);
             for (int i = 1; i < ships.Count; i++)
             {
-                int min = 0;
-                int max = sortedList.Count() - 1;
+                int max = 0;
+                int min = sortedList.Count() - 1;
                 int curInd;
 
                 while (true)
@@ -117,28 +117,28 @@ namespace BattleShips
                     if (min == max)
                         curInd = min;
                     else
-                        curInd = min + (max - min) / 2;
+                        curInd = max + (min - max) / 2;
 
                     if (ships[i].y < sortedList[curInd].y)
                     {
+                        if (max == curInd && min != max)
+                        {
+                            max++;
+                            continue;
+                        }
                         max = curInd;
                         if (min == max)
                         {
-                            sortedList.Insert(curInd, ships[i]);
+                            sortedList.Insert(curInd+1, ships[i]);
                             break;
                         }
                     }
                     else if (ships[i].y > sortedList[curInd].y)
                     {
-                        if (min == curInd && min != max)
-                        {
-                            min++;
-                            continue;
-                        }
                         min = curInd;
                         if (min == max)
                         {
-                            sortedList.Insert(curInd + 1, ships[i]);
+                            sortedList.Insert(curInd, ships[i]);
                             break;
                         }
                     }
@@ -251,7 +251,7 @@ namespace BattleShips
                                 curX += i;
 
                             _spaces[curY, curX] = SpaceStates.ship;
-                            available.Remove(new Vector2(curX, curY));
+                            available.RemoveAll(v => v.Equals(new Vector2(curX, curY)));
                         }
                         break;
                     }

@@ -34,7 +34,7 @@ namespace BattleShips
             _checkAround = new List<Vector2>();
             _origin = new Vector2(-1, 0);
             _padding = "  ";
-            _curState = GameState.DifficultyAllocation;
+            _curState = GameState.BoardAllocation;
             _selected = new Vector2();
             _ships = new List<Vector2>();
             _playerBoard = new Board(10, 10);
@@ -389,7 +389,7 @@ namespace BattleShips
                     if (_playerBoard.GetSpaceState(pos.x, pos.y) == Board.SpaceStates.hit)
                     {
                         AddCheckSpaces(pos);
-                        _shotTargets.Remove(new Vector2(pos.x, pos.y));
+                        _shotTargets.RemoveAll(v => v.Equals(pos));
                     }
                     break;
                 }
@@ -411,22 +411,15 @@ namespace BattleShips
 
         private void FireAtCheckAroundSpaces()
         {
-            if (_checkAround.Count() <= 0)
-                return;
-
             int ind;
             Vector2 pos;
-            while (true)
-            {
-                ind = Program.RNG.Next(_checkAround.Count());
-                pos = new Vector2(_checkAround[ind].x, _checkAround[ind].y);
-                _checkAround.RemoveAt(ind);
-                if (_playerBoard.FireAt(pos.x, pos.y))
-                    break;
-            }
+            ind = Program.RNG.Next(_checkAround.Count());
+            pos = new Vector2(_checkAround[ind].x, _checkAround[ind].y);
+            _playerBoard.FireAt(pos.x, pos.y);
             if (_playerBoard.GetSpaceState(pos.x, pos.y) == Board.SpaceStates.hit)
                 AddCheckSpaces(pos);
-            _shotTargets.Remove(new Vector2(pos.x, pos.y));
+            _checkAround.RemoveAll(v => v.Equals(pos));
+            _shotTargets.RemoveAll(v => v.Equals(pos));
         }
 
         private void AddCheckSpaces(Vector2 spaceHit)

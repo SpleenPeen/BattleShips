@@ -29,12 +29,10 @@ namespace BattleShips
         List<Vector2> _checkAround;
         bool _paused;
         Menu _pauseMenu;
-        bool _switchedState;
         ConsoleKey _key;
 
         public GameScreen()
         {
-            _switchedState = false;
             _key = ConsoleKey.None;
             _shotTargets = new List<Vector2>();
             _checkAround = new List<Vector2>();
@@ -62,36 +60,30 @@ namespace BattleShips
 
         public void Update()
         {
-            switch (_curState)
-            {
-                case GameState.BoardAllocation:
-                    if (!_paused)
-                        BoardAlloUpdate(_key);
-                    BoardAlloDraw();
-                    break;
-                case GameState.ShipAllocation:
-                    if (!_paused)
-                        ShipAlloUpdate(_key);
-                    ShipAlloDraw();
-                    break;
-                case GameState.DifficultyAllocation:
-                    if (!_paused)
-                        DifficultyAlloUpdate(_key);
-                    DifficultyAlloDraw();
-                    break;
-                case GameState.Gameplay:
-                    if (!_paused)
-                        GameplayUpdate(_key);
-                    GameplayDraw();
-                    break;
-                case GameState.GameOver:
-                    GameoverUpdate(_key);
-                    break;
-            }
-
+            //check whether to pause
             if (_key == ConsoleKey.Escape)
                 _paused = !_paused;
-            if (_paused)
+            //if not pause update current screen
+            if (!_paused)
+            {
+                switch (_curState)
+                {
+                    case GameState.BoardAllocation:
+                        BoardAlloUpdate(_key);
+                        break;
+                    case GameState.ShipAllocation:
+                        ShipAlloUpdate(_key);
+                        break;
+                    case GameState.DifficultyAllocation:
+                        DifficultyAlloUpdate(_key);
+                        break;
+                    case GameState.Gameplay:
+                        GameplayUpdate(_key);
+                        break;
+                }
+            }
+            //otherwise update the pause menu
+            else
             {
                 if (_pauseMenu.UpdateMenu(_key))
                 {
@@ -102,28 +94,36 @@ namespace BattleShips
                             break;
                     }
                 }
-                //prevents immediate inputs
-                if (!_paused)
-                    _key = ConsoleKey.None;
+            }
+
+            Draw();
+
+            _key = Console.ReadKey(intercept:true).Key;
+        }
+
+        private void Draw()
+        {
+            switch (_curState)
+            {
+                case GameState.BoardAllocation:
+                    BoardAlloDraw();
+                    break;
+                case GameState.ShipAllocation:
+                    ShipAlloDraw();
+                    break;
+                case GameState.DifficultyAllocation:
+                    DifficultyAlloDraw();
+                    break;
+                case GameState.Gameplay:
+                    GameplayDraw();
+                    break;
+                case GameState.GameOver:
+                    GameOverDraw();
+                    break;
             }
 
             if (_paused)
                 _pauseMenu.DrawMenu();
-
-            //prevents the screen not updating after switching states
-            if (_switchedState)
-            {
-                _switchedState = false;
-                return;
-            }
-            _key = Console.ReadKey(intercept:true).Key;
-        }
-
-        private void SwitchState(GameState newState)
-        {
-            _curState = newState;
-            _switchedState = true;
-            _key = ConsoleKey.None;
         }
 
         private void BoardAlloUpdate(ConsoleKey key)
@@ -137,7 +137,7 @@ namespace BattleShips
             if (key == ConsoleKey.Enter)
             {
                 _enemyBoard.SetSize(_playerBoard.Width, _playerBoard.Height);
-                SwitchState(GameState.ShipAllocation);
+                _curState = GameState.ShipAllocation;
             }
         }
 
@@ -151,7 +151,7 @@ namespace BattleShips
             if (_diffAloMenu.UpdateMenu(key))
             {
                 PrepareShotTargets();
-                SwitchState(GameState.Gameplay);
+                _curState = GameState.Gameplay;
             }
         }
 
@@ -242,7 +242,7 @@ namespace BattleShips
                     if (_ships.Count() > 0)
                     {
                         _enemyBoard.GenerateShips(_ships);
-                        SwitchState(GameState.DifficultyAllocation);
+                        _curState = GameState.DifficultyAllocation;
                     }
                     break;
             }
@@ -295,7 +295,7 @@ namespace BattleShips
             DrawStrings(drawLines);
         }
 
-        private void GameoverUpdate(ConsoleKey key)
+        private void GameOverDraw()
         {
             //display who won
             if (_enemyBoard.Won)
@@ -312,8 +312,6 @@ namespace BattleShips
             Console.WriteLine();
             PrintPadded($"Shots Fired: {_enemyBoard.ShotsFired}", $"Shots Fired: {_playerBoard.ShotsFired}");
             PrintPadded($"Hit Rate: {_enemyBoard.HitRate}%", $"Hit Rate: {_playerBoard.HitRate}%");
-
-            Console.ReadKey();
         }
 
         private void PrintPadded(string strng1, string strng2)
@@ -402,7 +400,7 @@ namespace BattleShips
                     return;
                 if (_enemyBoard.Won)
                 {
-                    SwitchState(GameState.GameOver);
+                    _curState = GameState.GameOver;
                     return;
                 }
 
@@ -411,7 +409,7 @@ namespace BattleShips
 
                 if (_playerBoard.Won)
                 {
-                    SwitchState(GameState.GameOver);
+                    _curState = GameState.GameOver;
                     return;
                 }
                 return;

@@ -24,15 +24,11 @@ namespace BattleShips
 
         static char[] _displaySymbols = ['X', '*', 'O', 'H'];
 
-        public Board()
+        public Board(int width = 10, int height = 10)
         {
             _shotsFired = 0;
             _shipSpaces = 0;
             _shipsHit = 0;
-        }
-
-        public Board(int width, int height) : this()
-        {
             SetSize(width, height);
         }
 

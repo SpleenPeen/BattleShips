@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -30,9 +31,11 @@ namespace BattleShips
         bool _paused;
         Menu _pauseMenu;
         ConsoleKey _key;
+        Stopwatch _timer;
 
         public GameScreen()
         {
+            _timer = new Stopwatch();
             _key = ConsoleKey.None;
             _shotTargets = new List<Vector2>();
             _checkAround = new List<Vector2>();
@@ -85,12 +88,16 @@ namespace BattleShips
             //otherwise update the pause menu
             else
             {
+                _timer.Stop();
                 if (_pauseMenu.UpdateMenu(_key))
                 {
                     switch (_pauseMenu.Selected)
                     {
                         case 0:
                             _paused = false;
+                            break;
+                        case 2:
+                            Environment.Exit(0);
                             break;
                     }
                 }
@@ -143,6 +150,10 @@ namespace BattleShips
 
         private void BoardAlloDraw()
         {
+            Console.WriteLine("Use arrow keys or WASD to scale the size of your board.");
+            Console.WriteLine("Press enter to confirm size.");
+            Console.WriteLine("You can press escape at anytime to pause.");
+            Console.WriteLine();
             DrawStrings(_playerBoard.GetDrawLines());
         }
 
@@ -151,6 +162,7 @@ namespace BattleShips
             if (_diffAloMenu.UpdateMenu(key))
             {
                 PrepareShotTargets();
+                _timer.Start();
                 _curState = GameState.Gameplay;
             }
         }
@@ -276,8 +288,13 @@ namespace BattleShips
 
         private void ShipAlloDraw()
         {
+            //draw instructions
+            Console.WriteLine("Use arrow keys or WASD to move your cursor.");
+            Console.WriteLine("Press space to begin and end ship placement.");
+            Console.WriteLine("Press enter to confirm your placements.");
+            Console.WriteLine();
+
             //draw player board
-            Console.WriteLine("Your Board");
             var drawLines = _playerBoard.GetDrawLines(_selected);
             //change currently selected space fields
             if (_origin.x >= 0)
@@ -312,6 +329,8 @@ namespace BattleShips
             Console.WriteLine();
             PrintPadded($"Shots Fired: {_enemyBoard.ShotsFired}", $"Shots Fired: {_playerBoard.ShotsFired}");
             PrintPadded($"Hit Rate: {_enemyBoard.HitRate}%", $"Hit Rate: {_playerBoard.HitRate}%");
+            Console.WriteLine();
+            Console.WriteLine($"Game Duration: {Math.Round((float)_timer.ElapsedMilliseconds/1000, 2)} seconds");
         }
 
         private void PrintPadded(string strng1, string strng2)
@@ -386,6 +405,9 @@ namespace BattleShips
 
         private void GameplayUpdate(ConsoleKey key)
         {
+            if (!_timer.IsRunning)
+                _timer.Start();
+
             //movement
             var move = Vector2.GetMovementVector(key);
             _selected.Add(move);
@@ -400,6 +422,7 @@ namespace BattleShips
                     return;
                 if (_enemyBoard.Won)
                 {
+                    _timer.Stop();
                     _curState = GameState.GameOver;
                     return;
                 }
@@ -409,6 +432,7 @@ namespace BattleShips
 
                 if (_playerBoard.Won)
                 {
+                    _timer.Stop();
                     _curState = GameState.GameOver;
                     return;
                 }
@@ -418,6 +442,11 @@ namespace BattleShips
 
         private void GameplayDraw()
         {
+            //draw instructions
+            Console.WriteLine("Use arrow keys or WASD to move cursor.");
+            Console.WriteLine("Press space to fire at cursor location.");
+            Console.WriteLine();
+
             //draw boards
             PrintPadded("Enemy Board", "Your Board");
             DrawStrings(CombineStrings(_enemyBoard.GetDrawLines(_selected, hidden: true), _playerBoard.GetDrawLines(), _padding));

@@ -281,7 +281,7 @@ namespace BattleShips
                     output.Add("");
                     foreach (char c in strings[i].ToCharArray())
                     {
-                        if (c == Board.HitChar || c == Board.MissChar)
+                        if (c == Board.HitChar || c == Board.MissChar || c == Board.SelChar)
                         {
                             output.Add(c.ToString());
                             output.Add("");
@@ -296,6 +296,14 @@ namespace BattleShips
                             Console.ForegroundColor = ConsoleColor.Green;
                         else if (seperated == Board.MissChar.ToString())
                             Console.ForegroundColor = ConsoleColor.Red;
+                        else if (seperated == Board.SelChar.ToString())
+                        {
+                            var spaceState = _enemyBoard.GetSpaceState(_selected.x, _selected.y);
+                             if (spaceState == Board.SpaceStates.hit)
+                                Console.ForegroundColor = ConsoleColor.Green;
+                             else if (spaceState == Board.SpaceStates.miss)
+                                Console.ForegroundColor = ConsoleColor.Red;
+                        }
                         Console.Write(seperated);
                         Console.ResetColor();
                     }

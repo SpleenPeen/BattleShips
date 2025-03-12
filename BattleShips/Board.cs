@@ -22,7 +22,7 @@ namespace BattleShips
         int _shipsHit;
         int _shotsFired;
 
-        static char[] _displaySymbols = ['X', '*', 'O'];
+        static char[] _displaySymbols = ['X', '*', 'O', 'H'];
 
         public Board()
         {
@@ -366,6 +366,11 @@ namespace BattleShips
         public static char ShipChar
         {
             get { return _displaySymbols[2]; }
+        }
+
+        public static char SelChar
+        {
+            get { return _displaySymbols[3]; }
         }
 
         public int Width

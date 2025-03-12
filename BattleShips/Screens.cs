@@ -27,9 +27,15 @@ namespace BattleShips
         Menu _diffAloMenu;
         List<Vector2> _shotTargets;
         List<Vector2> _checkAround;
+        bool _paused;
+        Menu _pauseMenu;
+        bool _switchedState;
+        ConsoleKey _key;
 
         public GameScreen()
         {
+            _switchedState = false;
+            _key = ConsoleKey.None;
             _shotTargets = new List<Vector2>();
             _checkAround = new List<Vector2>();
             _origin = new Vector2(-1, 0);
@@ -39,6 +45,7 @@ namespace BattleShips
             _ships = new List<Vector2>();
             _playerBoard = new Board(10, 10);
             _enemyBoard = new Board();
+            _paused = false;
             _diffAloMenu = new Menu(
                 options: ["Easy", "Medium", "Hard"], 
                 desc: "Select your difficulty for this game.", 
@@ -46,6 +53,11 @@ namespace BattleShips
                 width: 28,
                 outline: true,
                 centred: true);
+            _pauseMenu = new Menu(
+                options: ["Resume", "Main Menu", "Exit"],
+                outline: true,
+                centred: true
+                );
         }
 
         public void Update()
@@ -53,29 +65,69 @@ namespace BattleShips
             switch (_curState)
             {
                 case GameState.BoardAllocation:
-                    BoardAlloUpdate();
+                    if (!_paused)
+                        BoardAlloUpdate(_key);
+                    BoardAlloDraw();
                     break;
                 case GameState.ShipAllocation:
-                    ShipAlloUpdate();
+                    if (!_paused)
+                        ShipAlloUpdate(_key);
+                    ShipAlloDraw();
                     break;
                 case GameState.DifficultyAllocation:
-                    DifficultyAlloUpdate();
+                    if (!_paused)
+                        DifficultyAlloUpdate(_key);
+                    DifficultyAlloDraw();
                     break;
                 case GameState.Gameplay:
-                    GameplayUpdate();
+                    if (!_paused)
+                        GameplayUpdate(_key);
+                    GameplayDraw();
                     break;
                 case GameState.GameOver:
-                    GameoverUpdate();
+                    GameoverUpdate(_key);
                     break;
             }
+
+            if (_key == ConsoleKey.Escape)
+                _paused = !_paused;
+            if (_paused)
+            {
+                if (_pauseMenu.UpdateMenu(_key))
+                {
+                    switch (_pauseMenu.Selected)
+                    {
+                        case 0:
+                            _paused = false;
+                            break;
+                    }
+                }
+                //prevents immediate inputs
+                if (!_paused)
+                    _key = ConsoleKey.None;
+            }
+
+            if (_paused)
+                _pauseMenu.DrawMenu();
+
+            //prevents the screen not updating after switching states
+            if (_switchedState)
+            {
+                _switchedState = false;
+                return;
+            }
+            _key = Console.ReadKey(intercept:true).Key;
         }
 
-        private void BoardAlloUpdate()
+        private void SwitchState(GameState newState)
         {
-            DrawStrings(_playerBoard.GetDrawLines());
+            _curState = newState;
+            _switchedState = true;
+            _key = ConsoleKey.None;
+        }
 
-            var key = Console.ReadKey().Key;
-
+        private void BoardAlloUpdate(ConsoleKey key)
+        {
             var newSize = Vector2.GetMovementVector(key);
             newSize.x = Math.Max(1, _playerBoard.Width + newSize.x);
             newSize.y = Math.Max(1, _playerBoard.Height + newSize.y);
@@ -85,20 +137,28 @@ namespace BattleShips
             if (key == ConsoleKey.Enter)
             {
                 _enemyBoard.SetSize(_playerBoard.Width, _playerBoard.Height);
-                _curState = GameState.ShipAllocation;
+                SwitchState(GameState.ShipAllocation);
             }
         }
 
-        private void DifficultyAlloUpdate()
+        private void BoardAlloDraw()
         {
-            _diffAloMenu.DrawMenu();
-            var key = Console.ReadKey().Key;
+            DrawStrings(_playerBoard.GetDrawLines());
+        }
 
+        private void DifficultyAlloUpdate(ConsoleKey key)
+        {
             if (_diffAloMenu.UpdateMenu(key))
             {
                 PrepareShotTargets();
-                _curState = GameState.Gameplay;
+                SwitchState(GameState.Gameplay);
             }
+        }
+
+        private void DifficultyAlloDraw()
+        {
+            GameplayDraw();
+            _diffAloMenu.DrawMenu();
         }
 
         private void PrepareShotTargets()
@@ -132,28 +192,8 @@ namespace BattleShips
             }
         }
 
-        private void ShipAlloUpdate()
+        private void ShipAlloUpdate(ConsoleKey key)
         {
-            //draw player board
-            Console.WriteLine("Your Board");
-            var drawLines = _playerBoard.GetDrawLines(_selected);
-            //change currently selected space fields
-            if (_origin.x >= 0)
-            {
-                for (int y = Math.Min(_origin.y, _selected.y); y <= Math.Max(_selected.y, _origin.y); y++)
-                {
-                    var curLine = drawLines[_playerBoard.GetYPosStrng(y)].ToCharArray();
-                    for (int x = Math.Min(_origin.x, _selected.x); x <= Math.Max(_selected.x, _origin.x); x++)
-                    {
-                        curLine[_playerBoard.GetXPosStrng(x)] = 'O';
-                    }
-                    drawLines[_playerBoard.GetYPosStrng(y)] = new string(curLine);
-                }
-            }
-            DrawStrings(drawLines);
-
-            var key = Console.ReadKey().Key;
-
             //handle keypress
             //handle starting selection, ending selection and confirming selection
             switch (key)
@@ -202,7 +242,7 @@ namespace BattleShips
                     if (_ships.Count() > 0)
                     {
                         _enemyBoard.GenerateShips(_ships);
-                        _curState = GameState.DifficultyAllocation;
+                        SwitchState(GameState.DifficultyAllocation);
                     }
                     break;
             }
@@ -234,7 +274,28 @@ namespace BattleShips
             }
         }
 
-        private void GameoverUpdate()
+        private void ShipAlloDraw()
+        {
+            //draw player board
+            Console.WriteLine("Your Board");
+            var drawLines = _playerBoard.GetDrawLines(_selected);
+            //change currently selected space fields
+            if (_origin.x >= 0)
+            {
+                for (int y = Math.Min(_origin.y, _selected.y); y <= Math.Max(_selected.y, _origin.y); y++)
+                {
+                    var curLine = drawLines[_playerBoard.GetYPosStrng(y)].ToCharArray();
+                    for (int x = Math.Min(_origin.x, _selected.x); x <= Math.Max(_selected.x, _origin.x); x++)
+                    {
+                        curLine[_playerBoard.GetXPosStrng(x)] = 'O';
+                    }
+                    drawLines[_playerBoard.GetYPosStrng(y)] = new string(curLine);
+                }
+            }
+            DrawStrings(drawLines);
+        }
+
+        private void GameoverUpdate(ConsoleKey key)
         {
             //display who won
             if (_enemyBoard.Won)
@@ -325,14 +386,8 @@ namespace BattleShips
             return combined;
         }
 
-        private void GameplayUpdate()
+        private void GameplayUpdate(ConsoleKey key)
         {
-            //draw boards
-            PrintPadded("Enemy Board", "Your Board");
-            DrawStrings(CombineStrings(_enemyBoard.GetDrawLines(_selected, hidden: true), _playerBoard.GetDrawLines(), _padding));
-
-            var key = Console.ReadKey().Key;
-
             //movement
             var move = Vector2.GetMovementVector(key);
             _selected.Add(move);
@@ -347,7 +402,7 @@ namespace BattleShips
                     return;
                 if (_enemyBoard.Won)
                 {
-                    _curState = GameState.GameOver;
+                    SwitchState(GameState.GameOver);
                     return;
                 }
 
@@ -356,11 +411,18 @@ namespace BattleShips
 
                 if (_playerBoard.Won)
                 {
-                    _curState = GameState.GameOver;
+                    SwitchState(GameState.GameOver);
                     return;
                 }
                 return;
             }
+        }
+
+        private void GameplayDraw()
+        {
+            //draw boards
+            PrintPadded("Enemy Board", "Your Board");
+            DrawStrings(CombineStrings(_enemyBoard.GetDrawLines(_selected, hidden: true), _playerBoard.GetDrawLines(), _padding));
         }
 
         private void FireWithDifficulty()

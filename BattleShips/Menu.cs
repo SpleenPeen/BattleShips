@@ -173,6 +173,7 @@
         public int Selected
         {
             get { return _sel; }
+            set { _sel = value; }
         }
     }
 }

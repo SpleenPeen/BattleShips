@@ -24,12 +24,32 @@ namespace BattleShips
 
         static char[] _displaySymbols = ['X', '*', 'O', 'H'];
 
+        public Board(short[][] spaces, int shipSpaces, int shipsHit, int shotsFired)
+        {
+            ConvertShortsToSpaces(spaces);
+            _shipSpaces = shipSpaces;
+            _shipsHit = shipsHit;
+            _shotsFired = shotsFired;
+        }
+
         public Board(int width = 10, int height = 10)
         {
             _shotsFired = 0;
             _shipSpaces = 0;
             _shipsHit = 0;
             SetSize(width, height);
+        }
+
+        private void ConvertShortsToSpaces(short[][] spaces)
+        {
+            _spaces = new SpaceStates[spaces.Length, spaces[0].Length];
+            for (int y = 0; y < spaces.Length; y++)
+            {
+                for (int x = 0; x < spaces[y].Length; x++)
+                {
+                    _spaces[y,x] = (SpaceStates)spaces[y][x];
+                }
+            }
         }
 
         public void SetSize(int width, int height, bool keepShips = false)
@@ -349,6 +369,23 @@ namespace BattleShips
             return true;
         }
 
+        public short[][] SpacesNum
+        {
+            get
+            {
+                short[][] outpt = new short[Height][];
+                for (int y = 0; y < Height; y++)
+                {
+                    outpt[y] = new short[Width];
+                    for (int x = 0; x < Width; x++)
+                    {
+                        outpt[y][x] = (short)_spaces[y,x];
+                    }
+                }
+                return outpt;
+            }
+        }
+
         public static char HitChar
         {
             get { return _displaySymbols[0]; }
@@ -394,12 +431,27 @@ namespace BattleShips
             get { return (float)Math.Round( (float)_shipsHit / _shotsFired*100, 1); }
         }
 
+        public SpaceStates[,] Spaces
+        {
+            get { return _spaces; }
+        }
+
         public int WidthString
         {
             get
             {
                 return _spaces.GetLength(1) * 4 + 1;
             }
+        }
+
+        public int ShipSpaces
+        {
+            get { return _shipSpaces; }
+        }
+
+        public int ShipsHit
+        {
+            get { return _shipsHit; }
         }
     }
 }

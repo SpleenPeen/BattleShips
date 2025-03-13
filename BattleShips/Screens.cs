@@ -3,10 +3,42 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace BattleShips
 {
+    public class GameSave
+    {
+        public short[][] PlayerSpaces { get; set; }
+        public int PShipSpaces { get; set; }
+        public int PShipsHit {  get; set; }
+        public int PShotsFired { get; set; }
+        public short[][] EnemySpaces { get; set; }
+        public int EShipSpaces { get; set; }
+        public int EShipsHit { get; set; }
+        public int EShotsFired { get; set; }
+        public long Timer { get; set; }
+        public int Difficulty { get; set; }
+        public List<Vector2> CheckAround { get; set; }
+        public List<Vector2> ShotTargets { get; set; }
+    }
+
+    public class BetterStopWatch : Stopwatch
+    {
+        long _startOffset;
+
+        public BetterStopWatch(long startOffsetMS)
+        {
+            _startOffset = startOffsetMS;
+        }
+
+        public new long ElapsedMilliseconds
+        {
+            get { return _startOffset + base.ElapsedMilliseconds; }
+        }
+    }
+
     internal class GameScreen
     {
         enum GameState
@@ -31,11 +63,15 @@ namespace BattleShips
         bool _paused;
         Menu _pauseMenu;
         ConsoleKey _key;
-        Stopwatch _timer;
+        BetterStopWatch _timer;
+        static string _savePath;
+        static string _saveName;
 
         public GameScreen()
         {
-            _timer = new Stopwatch();
+            _saveName = "GameSave";
+            _savePath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + @"\BattleShips\";
+            _timer = new BetterStopWatch(0);
             _key = ConsoleKey.None;
             _shotTargets = new List<Vector2>();
             _checkAround = new List<Vector2>();
@@ -97,6 +133,8 @@ namespace BattleShips
                             _paused = false;
                             break;
                         case 2:
+                            if (_curState == GameState.Gameplay)
+                                SaveGame();
                             Environment.Exit(0);
                             break;
                     }
@@ -131,6 +169,58 @@ namespace BattleShips
 
             if (_paused)
                 _pauseMenu.DrawMenu();
+        }
+
+        private void SaveGame()
+        {
+            var curSave = new GameSave();
+            //player board
+            curSave.PlayerSpaces = _playerBoard.SpacesNum;
+            curSave.PShipSpaces = _playerBoard.ShipSpaces;
+            curSave.PShipsHit = _playerBoard.ShipsHit;
+            curSave.PShotsFired = _playerBoard.ShotsFired;
+
+            //enemy board
+            curSave.EnemySpaces = _enemyBoard.SpacesNum;
+            curSave.EShipSpaces = _enemyBoard.ShipSpaces;
+            curSave.EShipsHit = _enemyBoard.ShipsHit;
+            curSave.EShotsFired = _enemyBoard.ShotsFired;
+
+            //game state
+            curSave.Timer = _timer.ElapsedMilliseconds;
+            curSave.Difficulty = _diffAloMenu.Selected;
+            curSave.ShotTargets = _shotTargets;
+            curSave.CheckAround = _checkAround;
+
+            string json = JsonSerializer.Serialize(curSave);
+            int save = 0;
+
+            if (!Directory.Exists(_savePath))
+            {
+                Directory.CreateDirectory(_savePath);
+                save = 0;
+            }
+            else
+                save = Directory.GetFiles(_savePath, $"{_saveName}*").Length;
+            
+            File.WriteAllText(@$"{_savePath}{_saveName}{save}.txt", json);
+        }
+
+        public void LoadLatestSave()
+        {
+            int curSave = Directory.GetFiles(_savePath, $"{_saveName}*").Length-1;
+            if (curSave == -1)
+                return;
+            _curState = GameState.Gameplay;
+            string json = File.ReadAllText($"{_savePath}{_saveName}{curSave}.txt");
+            GameSave save = JsonSerializer.Deserialize<GameSave>(json);
+
+            _playerBoard = new Board(save.PlayerSpaces, save.PShipSpaces, save.PShipsHit, save.PShotsFired);
+            _enemyBoard = new Board(save.EnemySpaces, save.EShipSpaces, save.EShipsHit, save.EShotsFired);
+            _checkAround = save.CheckAround;
+            _shotTargets = save.ShotTargets;
+            _timer = new BetterStopWatch(save.Timer);
+            _diffAloMenu.Selected = save.Difficulty;
         }
 
         private void BoardAlloUpdate(ConsoleKey key)

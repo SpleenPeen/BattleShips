@@ -41,10 +41,24 @@ namespace BattleShips
             }
         }
 
-        public static GameSave? GetLatestGameSave()
+        public static Queue<type> ArrayToQueue<type>(type[] array)
+        {
+            Queue<type> queue = new Queue<type>();
+
+            foreach (var item in array)
+            {
+                queue.Enqueue(item);
+            }
+            return queue;
+        }
+
+        public static GameSave? GetGameSave(short ind = -1)
         {
             var files = Directory.GetFiles(SavePath);
-            return JsonSerializer.Deserialize<GameSave>(File.ReadAllText(files[files.Length - 1]));
+            if (ind == -1)
+                return JsonSerializer.Deserialize<GameSave>(File.ReadAllText(files[files.Length - 1]));
+            else
+                return JsonSerializer.Deserialize<GameSave>(File.ReadAllText(files[ind]));
         }
 
         public static void ClearOldSaves()

@@ -18,12 +18,14 @@ namespace BattleShips
 
         State _curState;
         Menu _selMenu;
+        Board _enemyBoard;
+        Board _playerBoard;
 
         public History()
         {
             var files = Directory.GetFiles(Program.SavePath).ToList();
 
-            if (Program.GetLatestGameSave().Ongoing)
+            if (Program.GetGameSave().Ongoing)
                 files.RemoveAt(files.Count - 1);
 
             for (int i = 0; i < files.Count; i++)
@@ -53,8 +55,16 @@ namespace BattleShips
 
         private void SelectionUpdate()
         {
-            _selMenu.UpdateMenu(Program.Key);
+            if (_selMenu.UpdateMenu(Program.Key))
+            {
+                _curState = State.replay;
+                var selGame = Program.GetGameSave((short)_selMenu.Selected);
+                _enemyBoard = new Board(selGame.EnemySpaces, selGame.EShipSpaces, selGame.EShipsHit, Program.ArrayToQueue(selGame.EShots));
+                _playerBoard = new Board(selGame.PlayerSpaces, selGame.PShipSpaces, selGame.PShipsHit, Program.ArrayToQueue(selGame.PShots));
+            }
         }
+
+
 
         public void Draw()
         {
@@ -99,7 +109,7 @@ namespace BattleShips
                 if (Directory.GetFiles(Program.SavePath).Length == 0)
                     return opts.ToArray();
 
-                if (!Program.GetLatestGameSave().Ongoing)
+                if (!Program.GetGameSave().Ongoing)
                     return opts.ToArray();
 
                 opts.Insert(0, "Continue");
@@ -309,7 +319,7 @@ namespace BattleShips
             else if (Directory.GetFiles(Program.SavePath).Length > 0)
             {
                 save = Program.GetLatestSaveNum();
-                if (!Program.GetLatestGameSave().Ongoing)
+                if (!Program.GetGameSave().Ongoing)
                 {
                     save++;
                     Program.ClearOldSaves();
@@ -319,24 +329,13 @@ namespace BattleShips
             File.WriteAllText(@$"{Program.SavePath}{Program.SaveName}{save}.txt", json);
         }
 
-        private Queue<type> ArrayToQueue<type>(type[] array)
-        {
-            Queue<type> queue = new Queue<type>();
-
-            foreach (var item in array)
-            {
-                queue.Enqueue(item);
-            }
-            return queue;
-        }
-
         public void LoadLatestSave()
         {
             _curState = GameState.Gameplay;
-            var save = Program.GetLatestGameSave();
+            var save = Program.GetGameSave();
 
-            _playerBoard = new Board(save.PlayerSpaces, save.PShipSpaces, save.PShipsHit, ArrayToQueue(save.PShots));
-            _enemyBoard = new Board(save.EnemySpaces, save.EShipSpaces, save.EShipsHit, ArrayToQueue(save.EShots));
+            _playerBoard = new Board(save.PlayerSpaces, save.PShipSpaces, save.PShipsHit, Program.ArrayToQueue(save.PShots));
+            _enemyBoard = new Board(save.EnemySpaces, save.EShipSpaces, save.EShipsHit, Program.ArrayToQueue(save.EShots));
             _checkAround = save.CheckAround;
             _shotTargets = save.ShotTargets;
             _timer = new BetterStopwatch(save.Timer);

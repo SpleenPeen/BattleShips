@@ -16,9 +16,61 @@ namespace BattleShips
             replay
         }
 
+        State _curState;
+        Menu _selMenu;
+
         public History()
         {
+            var files = Directory.GetFiles(Program.SavePath).ToList();
 
+            if (Program.GetLatestGameSave().Ongoing)
+                files.RemoveAt(files.Count - 1);
+
+            for (int i = 0; i < files.Count; i++)
+            {
+                files[i] = files[i].Substring(Program.SavePath.Length, files[i].Length - Program.SavePath.Length - 4);
+            }
+
+            if (files.Count == 0)
+                return;
+
+            _selMenu = new Menu(files.ToArray());
+
+            _curState = State.selection;
+        }
+
+        public void Update()
+        {
+            switch (_curState)
+            {
+                case State.selection:
+                    SelectionUpdate();
+                    break;
+                case State.replay:
+                    break;
+            }
+        }
+
+        private void SelectionUpdate()
+        {
+            _selMenu.UpdateMenu(Program.Key);
+        }
+
+        public void Draw()
+        {
+            switch (_curState)
+            {
+                case State.selection:
+                    DrawSelection();
+                    break;
+                case State.replay:
+                    break;
+            }
+        }
+
+        private void DrawSelection()
+        {
+            _selMenu.DrawMenu();
         }
     }
 
@@ -75,6 +127,7 @@ namespace BattleShips
                         Program.SwitchScreen(ScreenState.Game);
                         break;
                     case 2:
+                        Program.SwitchScreen(ScreenState.History);
                         break;
                     case 3:
                         Environment.Exit(0);

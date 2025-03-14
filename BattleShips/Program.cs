@@ -17,6 +17,7 @@ namespace BattleShips
         public static ConsoleKey Key;
         static GameScreen _gameScreen;
         static MainMenu _mainScreen;
+        static History _history;
         static ScreenState _curScrn;
         static short _saveSlots;
 
@@ -33,6 +34,9 @@ namespace BattleShips
                     break;
                 case ScreenState.Game:
                     _gameScreen = new GameScreen();
+                    break;
+                case ScreenState.History:
+                    _history = new History();
                     break;
             }
         }
@@ -81,6 +85,7 @@ namespace BattleShips
             _curScrn = ScreenState.MainMenu;
             _mainScreen = new MainMenu();
             _gameScreen = new GameScreen();
+            _history = new History();
 
             while (true)
             {
@@ -92,6 +97,9 @@ namespace BattleShips
                     case ScreenState.Game:
                         _gameScreen.Update();
                         break;
+                    case ScreenState.History:
+                        _history.Update();
+                        break;
                 }
 
                 switch (_curScrn)
@@ -101,6 +109,9 @@ namespace BattleShips
                         break;
                     case ScreenState.Game:
                         _gameScreen.Draw();
+                        break;
+                    case ScreenState.History:
+                        _history.Draw();
                         break;
                 }
                 Key = Console.ReadKey(intercept: true).Key;

@@ -8,6 +8,20 @@ using System.Threading.Tasks;
 
 namespace BattleShips
 {
+    internal class History
+    {
+        enum State
+        {
+            selection,
+            replay
+        }
+
+        public History()
+        {
+
+        }
+    }
+
     internal class MainMenu
     {
         Menu _mainMenu;
@@ -220,13 +234,13 @@ namespace BattleShips
             curSave.PlayerSpaces = _playerBoard.SpacesNum;
             curSave.PShipSpaces = _playerBoard.ShipSpaces;
             curSave.PShipsHit = _playerBoard.ShipsHit;
-            curSave.PShotsFired = _playerBoard.ShotsFired;
+            curSave.PShots = _playerBoard.Shots.ToArray();
 
             //enemy board
             curSave.EnemySpaces = _enemyBoard.SpacesNum;
             curSave.EShipSpaces = _enemyBoard.ShipSpaces;
             curSave.EShipsHit = _enemyBoard.ShipsHit;
-            curSave.EShotsFired = _enemyBoard.ShotsFired;
+            curSave.EShots = _enemyBoard.Shots.ToArray();
 
             //game state
             curSave.Timer = _timer.ElapsedMilliseconds;
@@ -252,13 +266,24 @@ namespace BattleShips
             File.WriteAllText(@$"{Program.SavePath}{Program.SaveName}{save}.txt", json);
         }
 
+        private Queue<type> ArrayToQueue<type>(type[] array)
+        {
+            Queue<type> queue = new Queue<type>();
+
+            foreach (var item in array)
+            {
+                queue.Enqueue(item);
+            }
+            return queue;
+        }
+
         public void LoadLatestSave()
         {
             _curState = GameState.Gameplay;
             var save = Program.GetLatestGameSave();
 
-            _playerBoard = new Board(save.PlayerSpaces, save.PShipSpaces, save.PShipsHit, save.PShotsFired);
-            _enemyBoard = new Board(save.EnemySpaces, save.EShipSpaces, save.EShipsHit, save.EShotsFired);
+            _playerBoard = new Board(save.PlayerSpaces, save.PShipSpaces, save.PShipsHit, ArrayToQueue(save.PShots));
+            _enemyBoard = new Board(save.EnemySpaces, save.EShipSpaces, save.EShipsHit, ArrayToQueue(save.EShots));
             _checkAround = save.CheckAround;
             _shotTargets = save.ShotTargets;
             _timer = new BetterStopwatch(save.Timer);

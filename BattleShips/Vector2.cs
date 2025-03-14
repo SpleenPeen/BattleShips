@@ -67,11 +67,5 @@ namespace BattleShips
             get { return _y; }
             set { _y = value; }
         }
-
-        public int[] Get
-        {
-            get { return [x, y]; }
-            set { _x = value[0]; _y = value[1]; }
-        }
     }
 }

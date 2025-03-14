@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -20,21 +21,21 @@ namespace BattleShips
         private SpaceStates[,] _spaces;
         int _shipSpaces;
         int _shipsHit;
-        int _shotsFired;
+        Queue<Vector2> _shots;
 
         static char[] _displaySymbols = ['X', '*', 'O', 'H'];
 
-        public Board(short[][] spaces, int shipSpaces, int shipsHit, int shotsFired)
+        public Board(short[][] spaces, int shipSpaces, int shipsHit, Queue<Vector2> shots)
         {
             ConvertShortsToSpaces(spaces);
             _shipSpaces = shipSpaces;
             _shipsHit = shipsHit;
-            _shotsFired = shotsFired;
+            _shots = shots;
         }
 
         public Board(int width = 10, int height = 10)
         {
-            _shotsFired = 0;
+            _shots = new Queue<Vector2>();
             _shipSpaces = 0;
             _shipsHit = 0;
             SetSize(width, height);
@@ -81,21 +82,21 @@ namespace BattleShips
             if (!WithinBounds(new Vector2(x,y)))
                 return false;
 
-            _shotsFired++; //increase shots fired
             //check if miss
             if (_spaces[y, x] == SpaceStates.empty)
             {
                 _spaces[y, x] = SpaceStates.miss;
+                _shots.Enqueue(new Vector2(x, y));
                 return true;
             }
             //check if hit
             if (_spaces[y, x] == SpaceStates.ship)
             {
                 _spaces[y, x] = SpaceStates.hit;
+                _shots.Enqueue(new Vector2(x, y));
                 _shipsHit++;
                 return true;
             }
-            _shotsFired--; //if didnt fire take away from shots fired (as it was added at the start)
             return false;
         }
 
@@ -423,12 +424,17 @@ namespace BattleShips
 
         public int ShotsFired
         {
-            get { return _shotsFired; }
+            get { return _shots.Count; }
         }
 
         public float HitRate
         {
-            get { return (float)Math.Round( (float)_shipsHit / _shotsFired*100, 1); }
+            get { return (float)Math.Round( (float)_shipsHit / ShotsFired*100, 1); }
+        }
+
+        public Queue<Vector2> Shots
+        {
+            get { return _shots; }
         }
 
         public SpaceStates[,] Spaces

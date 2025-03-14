@@ -610,7 +610,7 @@ namespace BattleShips
 
             while(true)
             {
-                var pos = _shotTargets[Program.RNG.Next(_shotTargets.Count())];
+                var pos = new Vector2(_shotTargets[Program.RNG.Next(_shotTargets.Count())]);
                 pos.x += Program.RNG.Next(-radius, radius);
                 pos.y += Program.RNG.Next(-radius, radius);
                 if (_playerBoard.FireAt(pos.x, pos.y))

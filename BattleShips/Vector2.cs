@@ -16,6 +16,8 @@ namespace BattleShips
             _y = y;
         }
 
+        public Vector2(Vector2 v) : this(v.x, v.y) { }
+
         public Vector2() : this(0, 0) { }
 
         public void Add(Vector2 other)

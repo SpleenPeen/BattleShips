@@ -364,7 +364,7 @@ namespace BattleShips
             Console.WriteLine("Press enter to confirm size.");
             Console.WriteLine("You can press escape at anytime to pause.");
             Console.WriteLine();
-            DrawStrings(_playerBoard.GetDrawLines());
+            Board.DrawStrings(_playerBoard.GetDrawLines());
         }
 
         private void DifficultyAlloUpdate(ConsoleKey key)
@@ -519,7 +519,7 @@ namespace BattleShips
                     drawLines[_playerBoard.GetYPosStrng(y)] = new string(curLine);
                 }
             }
-            DrawStrings(drawLines);
+            Board.DrawStrings(drawLines);
         }
 
         private void GameOverDraw()
@@ -533,7 +533,7 @@ namespace BattleShips
             PrintPadded("Enemy Board", "Your Board");
 
             //draw the board
-            DrawStrings(CombineStrings(_enemyBoard.GetDrawLines(), _playerBoard.GetDrawLines(), _padding));
+            Board.DrawStrings(Board.CombineStrings(_enemyBoard.GetDrawLines(), _playerBoard.GetDrawLines(), _padding));
 
             //draw stats
             Console.WriteLine();
@@ -556,62 +556,7 @@ namespace BattleShips
             Console.WriteLine(output);
         }
 
-        private void DrawStrings(string[] strings)
-        {
-            //loop though all the lines
-            for (int i = 0; i < strings.Length; i++)
-            {
-                //if not an inbetween line
-                if (i % 2 > 0)
-                {
-                    //split string when there is a hit or miss character
-                    List<string> output = new List<string>();
-                    output.Add("");
-                    foreach (char c in strings[i].ToCharArray())
-                    {
-                        if (c == Board.HitChar || c == Board.MissChar || c == Board.SelChar)
-                        {
-                            output.Add(c.ToString());
-                            output.Add("");
-                            continue;
-                        }
-                        output[output.Count() - 1] += c.ToString();
-                    }
-                    //write all the split strings, changing colour when its a miss or a hit
-                    foreach (string seperated in output)
-                    {
-                        if (seperated == Board.HitChar.ToString())
-                            Console.ForegroundColor = ConsoleColor.Green;
-                        else if (seperated == Board.MissChar.ToString())
-                            Console.ForegroundColor = ConsoleColor.Red;
-                        else if (seperated == Board.SelChar.ToString())
-                        {
-                            var spaceState = _enemyBoard.GetSpaceState(_selected.x, _selected.y);
-                             if (spaceState == Board.SpaceStates.hit)
-                                Console.ForegroundColor = ConsoleColor.Green;
-                             else if (spaceState == Board.SpaceStates.miss)
-                                Console.ForegroundColor = ConsoleColor.Red;
-                        }
-                        Console.Write(seperated);
-                        Console.ResetColor();
-                    }
-                    Console.WriteLine();
-                    continue;
-                }
-                //if its an inbetween line, just print the line
-                Console.WriteLine(strings[i]);
-            }
-        }
-
-        private string[] CombineStrings(string[] str1, string[] str2, string padding = "")
-        {
-            string[] combined = new string[str1.Length];
-            for (int i = 0; i < str1.Length; i++)
-            {
-                combined[i] = str1[i] + padding + str2[i];
-            }
-            return combined;
-        }
+        
 
         private void GameplayUpdate(ConsoleKey key)
         {
@@ -659,7 +604,7 @@ namespace BattleShips
 
             //draw boards
             PrintPadded("Enemy Board", "Your Board");
-            DrawStrings(CombineStrings(_enemyBoard.GetDrawLines(_selected, hidden: true), _playerBoard.GetDrawLines(), _padding));
+            Board.DrawStrings(Board.CombineStrings(_enemyBoard.GetDrawLines(_selected, hidden: true), _playerBoard.GetDrawLines(), _padding), _enemyBoard, _selected);
         }
 
         private void FireWithDifficulty()

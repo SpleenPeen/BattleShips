@@ -100,6 +100,63 @@ namespace BattleShips
             return false;
         }
 
+        public static void DrawStrings(string[] strings, Board? selBoard = null, Vector2? sel = null)
+        {
+            //loop though all the lines
+            for (int i = 0; i < strings.Length; i++)
+            {
+                //if not an inbetween line
+                if (i % 2 > 0)
+                {
+                    //split string when there is a hit or miss character
+                    List<string> output = new List<string>();
+                    output.Add("");
+                    foreach (char c in strings[i].ToCharArray())
+                    {
+                        if (c == Board.HitChar || c == Board.MissChar || c == Board.SelChar)
+                        {
+                            output.Add(c.ToString());
+                            output.Add("");
+                            continue;
+                        }
+                        output[output.Count() - 1] += c.ToString();
+                    }
+                    //write all the split strings, changing colour when its a miss or a hit
+                    foreach (string seperated in output)
+                    {
+                        if (seperated == Board.HitChar.ToString())
+                            Console.ForegroundColor = ConsoleColor.Green;
+                        else if (seperated == Board.MissChar.ToString())
+                            Console.ForegroundColor = ConsoleColor.Red;
+                        else if (seperated == Board.SelChar.ToString() && selBoard != null && sel != null)
+                        {
+                            var spaceState = selBoard.GetSpaceState(sel.x, sel.y);
+                            if (spaceState == Board.SpaceStates.hit)
+                                Console.ForegroundColor = ConsoleColor.Green;
+                            else if (spaceState == Board.SpaceStates.miss)
+                                Console.ForegroundColor = ConsoleColor.Red;
+                        }
+                        Console.Write(seperated);
+                        Console.ResetColor();
+                    }
+                    Console.WriteLine();
+                    continue;
+                }
+                //if its an inbetween line, just print the line
+                Console.WriteLine(strings[i]);
+            }
+        }
+
+        public static string[] CombineStrings(string[] str1, string[] str2, string padding = "")
+        {
+            string[] combined = new string[str1.Length];
+            for (int i = 0; i < str1.Length; i++)
+            {
+                combined[i] = str1[i] + padding + str2[i];
+            }
+            return combined;
+        }
+
         private List<Vector2> AllSpaces
         {
             get

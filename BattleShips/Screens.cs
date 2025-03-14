@@ -8,34 +8,70 @@ using System.Threading.Tasks;
 
 namespace BattleShips
 {
-    public class GameSave
+    internal class MainMenu
     {
-        public short[][] PlayerSpaces { get; set; }
-        public int PShipSpaces { get; set; }
-        public int PShipsHit {  get; set; }
-        public int PShotsFired { get; set; }
-        public short[][] EnemySpaces { get; set; }
-        public int EShipSpaces { get; set; }
-        public int EShipsHit { get; set; }
-        public int EShotsFired { get; set; }
-        public long Timer { get; set; }
-        public int Difficulty { get; set; }
-        public List<Vector2> CheckAround { get; set; }
-        public List<Vector2> ShotTargets { get; set; }
-    }
+        Menu _mainMenu;
+        bool _continue;
 
-    public class BetterStopWatch : Stopwatch
-    {
-        long _startOffset;
-
-        public BetterStopWatch(long startOffsetMS)
+        public MainMenu()
         {
-            _startOffset = startOffsetMS;
+            List<String> opts;
+
+            _continue = false;
+            _mainMenu = new Menu(Opts, outline: true, centred: true);
         }
 
-        public new long ElapsedMilliseconds
+        private string[] Opts
         {
-            get { return _startOffset + base.ElapsedMilliseconds; }
+            get
+            {
+                List<string> opts = ["New Game", "History", "Exit"];
+
+                if (!Directory.Exists(Program.SavePath))
+                    return opts.ToArray();
+
+                if (Directory.GetFiles(Program.SavePath).Length == 0)
+                    return opts.ToArray();
+
+                if (!Program.GetLatestGameSave().Ongoing)
+                    return opts.ToArray();
+
+                opts.Insert(0, "Continue");
+
+                _continue = true;
+                return opts.ToArray();
+            }
+        }
+
+        public void Update()
+        {
+            if (_mainMenu.UpdateMenu(Program.Key))
+            {
+                var sel = _mainMenu.Selected;
+                if (!_continue)
+                    sel++;
+
+                switch (sel)
+                {
+                    case 0:
+                        Program.SwitchScreen(ScreenState.Game);
+                        Program.LoadLatestSave();
+                        break;
+                    case 1:
+                        Program.SwitchScreen(ScreenState.Game);
+                        break;
+                    case 2:
+                        break;
+                    case 3:
+                        Environment.Exit(0);
+                        break;
+                }
+            }
+        }
+
+        public void Draw()
+        {
+            _mainMenu.DrawMenu();
         }
     }
 
@@ -62,17 +98,12 @@ namespace BattleShips
         List<Vector2> _checkAround;
         bool _paused;
         Menu _pauseMenu;
-        ConsoleKey _key;
-        BetterStopWatch _timer;
-        static string _savePath;
-        static string _saveName;
-
+        BetterStopwatch _timer;
+        
         public GameScreen()
         {
-            _saveName = "GameSave";
-            _savePath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + @"\BattleShips\";
-            _timer = new BetterStopWatch(0);
-            _key = ConsoleKey.None;
+            _timer = new BetterStopwatch(0);
+            Program.Key = ConsoleKey.None;
             _shotTargets = new List<Vector2>();
             _checkAround = new List<Vector2>();
             _origin = new Vector2(-1, 0);
@@ -91,7 +122,7 @@ namespace BattleShips
                 outline: true,
                 centred: true);
             _pauseMenu = new Menu(
-                options: ["Resume", "Main Menu", "Exit"],
+                options: ["Resume", "Main Menu", "Save and Exit"],
                 outline: true,
                 centred: true
                 );
@@ -100,7 +131,7 @@ namespace BattleShips
         public void Update()
         {
             //check whether to pause
-            if (_key == ConsoleKey.Escape)
+            if (Program.Key == ConsoleKey.Escape)
                 _paused = !_paused;
             //if not pause update current screen
             if (!_paused)
@@ -108,16 +139,16 @@ namespace BattleShips
                 switch (_curState)
                 {
                     case GameState.BoardAllocation:
-                        BoardAlloUpdate(_key);
+                        BoardAlloUpdate(Program.Key);
                         break;
                     case GameState.ShipAllocation:
-                        ShipAlloUpdate(_key);
+                        ShipAlloUpdate(Program.Key);
                         break;
                     case GameState.DifficultyAllocation:
-                        DifficultyAlloUpdate(_key);
+                        DifficultyAlloUpdate(Program.Key);
                         break;
                     case GameState.Gameplay:
-                        GameplayUpdate(_key);
+                        GameplayUpdate(Program.Key);
                         break;
                 }
             }
@@ -125,28 +156,39 @@ namespace BattleShips
             else
             {
                 _timer.Stop();
-                if (_pauseMenu.UpdateMenu(_key))
+                if (_pauseMenu.UpdateMenu(Program.Key))
                 {
                     switch (_pauseMenu.Selected)
                     {
                         case 0:
                             _paused = false;
                             break;
+                        case 1:
+                            if (Savable)
+                                SaveGame();
+                            Program.SwitchScreen(ScreenState.MainMenu);
+                            break;
                         case 2:
-                            if (_curState == GameState.Gameplay)
+                            if (Savable)
                                 SaveGame();
                             Environment.Exit(0);
                             break;
                     }
                 }
             }
-
-            Draw();
-
-            _key = Console.ReadKey(intercept:true).Key;
         }
 
-        private void Draw()
+        private bool Savable
+        {
+            get
+            {
+                if (_curState == GameState.Gameplay || _curState == GameState.GameOver)
+                    return true;
+                return false;
+            }
+        }
+
+        public void Draw()
         {
             switch (_curState)
             {
@@ -195,31 +237,31 @@ namespace BattleShips
             string json = JsonSerializer.Serialize(curSave);
             int save = 0;
 
-            if (!Directory.Exists(_savePath))
+            if (!Directory.Exists(Program.SavePath))
+                Directory.CreateDirectory(Program.SavePath);
+            else if (Directory.GetFiles(Program.SavePath).Length > 0)
             {
-                Directory.CreateDirectory(_savePath);
-                save = 0;
+                save = Program.GetLatestSaveNum();
+                if (!Program.GetLatestGameSave().Ongoing)
+                {
+                    save++;
+                    Program.ClearOldSaves();
+                }
             }
-            else
-                save = Directory.GetFiles(_savePath, $"{_saveName}*").Length;
             
-            File.WriteAllText(@$"{_savePath}{_saveName}{save}.txt", json);
+            File.WriteAllText(@$"{Program.SavePath}{Program.SaveName}{save}.txt", json);
         }
 
         public void LoadLatestSave()
         {
-            int curSave = Directory.GetFiles(_savePath, $"{_saveName}*").Length-1;
-            if (curSave == -1)
-                return;
             _curState = GameState.Gameplay;
-            string json = File.ReadAllText($"{_savePath}{_saveName}{curSave}.txt");
-            GameSave save = JsonSerializer.Deserialize<GameSave>(json);
+            var save = Program.GetLatestGameSave();
 
             _playerBoard = new Board(save.PlayerSpaces, save.PShipSpaces, save.PShipsHit, save.PShotsFired);
             _enemyBoard = new Board(save.EnemySpaces, save.EShipSpaces, save.EShipsHit, save.EShotsFired);
             _checkAround = save.CheckAround;
             _shotTargets = save.ShotTargets;
-            _timer = new BetterStopWatch(save.Timer);
+            _timer = new BetterStopwatch(save.Timer);
             _diffAloMenu.Selected = save.Difficulty;
         }
 

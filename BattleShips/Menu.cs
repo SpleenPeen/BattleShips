@@ -50,6 +50,7 @@
 
         public void DrawMenu()
         {
+            var lastCursorPos = Console.GetCursorPosition();
             var curLength = 1;
 
             if (_centred)
@@ -142,6 +143,8 @@
                 DrawInbetween();
                 DrawEdge();
             }
+
+            Console.SetCursorPosition(lastCursorPos.Left, lastCursorPos.Top);
         }
 
         private void FinishOffLine(int curLength)

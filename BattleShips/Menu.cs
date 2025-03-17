@@ -178,6 +178,26 @@
             get { return _opts.Length; }
         }
 
+        public string GetOptString(int ind)
+        {
+            return _opts[ind];
+        }
+
+        public ConsoleColor DefCol
+        {
+            get { return _defCol; }
+        }
+
+        public ConsoleColor SelCol
+        {
+            get { return _selCol; }
+        }
+
+        public string SelText
+        {
+            get { return _opts[_sel]; }
+        }
+
         public int Selected
         {
             get { return _sel; }

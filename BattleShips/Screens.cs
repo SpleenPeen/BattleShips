@@ -20,12 +20,11 @@ namespace BattleShips
         Menu _selMenu;
         Board _enemyBoard;
         Board _playerBoard;
-
-
         bool _play;
         float _shotsPS;
         Stopwatch _timer;
         Stack<Vector2> _shots;
+        FileInfo[] _files;
 
         public History()
         {
@@ -33,21 +32,23 @@ namespace BattleShips
             _shots = new Stack<Vector2>();
             _play = false;
             _shotsPS = 1f;
-            var files = Directory.GetFiles(Program.SavePath).ToList();
+            var files = new DirectoryInfo(Program.SavePath).GetFiles().OrderBy(f => f.LastWriteTime).ToList();
 
-            if (Program.GetGameSave().Ongoing)
+            if (Program.GetGameSave(files[files.Count-1].Name).Ongoing)
                 files.RemoveAt(files.Count - 1);
 
             if (files.Count == 0)
                 return;
 
-            string[] reversed = new string[files.Count];
+            _files = new FileInfo[files.Count];
             for (int i = 0; i < files.Count; i++)
-            {
-                reversed[files.Count - i - 1] = files[i].Substring(Program.SavePath.Length, files[i].Length - Program.SavePath.Length - 4);
-            }
+                _files[i] = files[files.Count - i - 1];
 
-            _selMenu = new Menu(reversed);
+            string[] names = new string[files.Count];
+            for (int i = 0; i < files.Count; i++)
+                names[i] = files[files.Count - i -1].Name;
+
+            _selMenu = new Menu(names);
 
             _curState = State.selection;
         }
@@ -71,7 +72,7 @@ namespace BattleShips
             {
                 _shots.Clear();
                 _curState = State.replay;
-                var selGame = Program.GetGameSave((short)(_selMenu.Count - _selMenu.Selected - 1));
+                var selGame = Program.GetGameSave(_selMenu.SelText);
                 _enemyBoard = new Board(selGame.EnemySpaces, selGame.EShipSpaces, selGame.EShipsHit, Program.ArrayToLinkedList(selGame.EShots));
                 _playerBoard = new Board(selGame.PlayerSpaces, selGame.PShipSpaces, selGame.PShipsHit, Program.ArrayToLinkedList(selGame.PShots));
 
@@ -188,6 +189,59 @@ namespace BattleShips
             Console.WriteLine("Press Escape to return to main menu.");
             Console.WriteLine();
             _selMenu.DrawMenu();
+
+            int padding = 10;
+
+            for (int i = 0; i < _files.Count(); i++)
+            {
+                var curCol = _selMenu.DefCol;
+                if (i == _selMenu.Selected)
+                    curCol = _selMenu.SelCol;
+
+                var save = Program.GetGameSave(_selMenu.GetOptString(i));
+                Console.CursorLeft = 20;
+                Console.CursorTop = i+2;
+
+                var won = save.EShipsHit == save.EShipSpaces;
+                if (won)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkGreen;
+                    if (i == _selMenu.Selected)
+                        Console.ForegroundColor = ConsoleColor.Green;
+                    Program.WritePadded("Won", padding);
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    if (i == _selMenu.Selected)
+                        Console.ForegroundColor = ConsoleColor.Red;
+                    Program.WritePadded("Lost", padding);
+                }
+
+                var diffString = "Easy";
+                Console.ForegroundColor = ConsoleColor.DarkGreen;
+                if (_selMenu.Selected == i)
+                    Console.ForegroundColor = ConsoleColor.Green;
+                if (save.Difficulty == 1)
+                {
+                    diffString = "Medium";
+                    Console.ForegroundColor = ConsoleColor.DarkYellow;
+                    if (_selMenu.Selected == i)
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                }
+                else if (save.Difficulty == 2)
+                {
+                    diffString = "Hard";
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    if (_selMenu.Selected == i)
+                        Console.ForegroundColor = ConsoleColor.Red;
+                }
+                Program.WritePadded(diffString, padding);
+                Console.ForegroundColor = curCol;
+                Program.WritePadded(Math.Round((float)save.Timer/1000, 2).ToString() + "s", padding);
+                Program.WritePadded(_files[i].LastWriteTime.ToString(), padding);
+            }
+            Console.ResetColor();
         }
     }
 

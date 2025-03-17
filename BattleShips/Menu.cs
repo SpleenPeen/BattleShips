@@ -173,6 +173,11 @@
             CentreLeftPos();
         }
 
+        public int Count
+        {
+            get { return _opts.Length; }
+        }
+
         public int Selected
         {
             get { return _sel; }

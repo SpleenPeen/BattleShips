@@ -71,7 +71,7 @@ namespace BattleShips
             {
                 _shots.Clear();
                 _curState = State.replay;
-                var selGame = Program.GetGameSave((short)_selMenu.Selected);
+                var selGame = Program.GetGameSave((short)(_selMenu.Count - _selMenu.Selected - 1));
                 _enemyBoard = new Board(selGame.EnemySpaces, selGame.EShipSpaces, selGame.EShipsHit, Program.ArrayToLinkedList(selGame.EShots));
                 _playerBoard = new Board(selGame.PlayerSpaces, selGame.PShipSpaces, selGame.PShipsHit, Program.ArrayToLinkedList(selGame.PShots));
 

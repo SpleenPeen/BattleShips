@@ -34,6 +34,9 @@ namespace BattleShips
             _shotsPS = 1f;
             var files = new DirectoryInfo(Program.SavePath).GetFiles().OrderBy(f => f.LastWriteTime).ToList();
 
+            if (files.Count == 0)
+                return;
+
             if (Program.GetGameSave(files[files.Count-1].Name).Ongoing)
                 files.RemoveAt(files.Count - 1);
 
@@ -68,6 +71,12 @@ namespace BattleShips
 
         private void SelectionUpdate(ConsoleKey key)
         {
+            if (key == ConsoleKey.Escape)
+                Program.SwitchScreen(ScreenState.MainMenu);
+
+            if (_selMenu == null)
+                return;
+
             if (_selMenu.UpdateMenu(key))
             {
                 _shots.Clear();
@@ -79,8 +88,6 @@ namespace BattleShips
                 _enemyBoard.PrepForReplay();
                 _playerBoard.PrepForReplay();
             }
-            else if (key == ConsoleKey.Escape)
-                Program.SwitchScreen(ScreenState.MainMenu);
         }
 
         private void ReplayUpdate(ConsoleKey key)
@@ -186,11 +193,27 @@ namespace BattleShips
 
         private void DrawSelection()
         {
+            int padding = 10;
             Console.WriteLine("Press Escape to return to main menu.");
             Console.WriteLine();
-            _selMenu.DrawMenu();
 
-            int padding = 10;
+            if (_selMenu == null)
+            {
+                Console.WriteLine("You currently have no past game!");
+                return;
+            }
+
+            Console.ForegroundColor = ConsoleColor.Gray;
+            Program.WritePadded("", padding);
+            Program.WritePadded("", padding);
+            Program.WritePadded("State", padding);
+            Program.WritePadded("Diff", padding);
+            Program.WritePadded("Timer", padding);
+            Program.WritePadded("Date", padding);
+            Console.WriteLine();
+            Console.ResetColor();
+
+            _selMenu.DrawMenu();
 
             for (int i = 0; i < _files.Count(); i++)
             {
@@ -200,7 +223,7 @@ namespace BattleShips
 
                 var save = Program.GetGameSave(_selMenu.GetOptString(i));
                 Console.CursorLeft = 20;
-                Console.CursorTop = i+2;
+                Console.CursorTop = i+3;
 
                 var won = save.EShipsHit == save.EShipSpaces;
                 if (won)
@@ -239,7 +262,7 @@ namespace BattleShips
                 Program.WritePadded(diffString, padding);
                 Console.ForegroundColor = curCol;
                 Program.WritePadded(Math.Round((float)save.Timer/1000, 2).ToString() + "s", padding);
-                Program.WritePadded(_files[i].LastWriteTime.ToString(), padding);
+                Program.WritePadded(_files[i].LastWriteTime.ToLongDateString(), padding);
             }
             Console.ResetColor();
         }

@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Collections;
+using System.Text.Json;
 
 namespace BattleShips
 {
@@ -57,7 +58,7 @@ namespace BattleShips
         {
             var files = Directory.GetFiles(SavePath);
             if (ind == -1)
-                return JsonSerializer.Deserialize<GameSave>(File.ReadAllText(files[files.Length - 1]));
+                return JsonSerializer.Deserialize<GameSave>(File.ReadAllText(new DirectoryInfo(SavePath).GetFiles().OrderBy(f => f.LastWriteTime).ToList()[files.Length-1].FullName));
             else
                 return JsonSerializer.Deserialize<GameSave>(File.ReadAllText(files[ind]));
         }

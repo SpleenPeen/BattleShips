@@ -14,12 +14,13 @@ namespace BattleShips
         public static string SavePath { get; private set; } = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + @"\BattleShips\";
         public static string SaveName { get; private set; } = "GameSave";
         public static Random RNG { get; private set; } = new Random();
-        public static ConsoleKey Key;
+        static ConsoleKey _key;
         static GameScreen _gameScreen;
         static MainMenu _mainScreen;
         static History _history;
         static ScreenState _curScrn;
         static short _saveSlots;
+        public static bool DrawFrame;
 
         public static void SwitchScreen(ScreenState screen)
         {
@@ -41,15 +42,15 @@ namespace BattleShips
             }
         }
 
-        public static Queue<type> ArrayToQueue<type>(type[] array)
+        public static LinkedList<type> ArrayToLinkedList<type>(type[] array)
         {
-            Queue<type> queue = new Queue<type>();
+            LinkedList<type> list = new LinkedList<type>();
 
             foreach (var item in array)
             {
-                queue.Enqueue(item);
+                list.AddLast(item);
             }
-            return queue;
+            return list;
         }
 
         public static GameSave? GetGameSave(short ind = -1)
@@ -59,6 +60,18 @@ namespace BattleShips
                 return JsonSerializer.Deserialize<GameSave>(File.ReadAllText(files[files.Length - 1]));
             else
                 return JsonSerializer.Deserialize<GameSave>(File.ReadAllText(files[ind]));
+        }
+
+        public static void PrintPadded(string strng1, string strng2, int pad)
+        {
+            var output = strng1;
+            var width = pad;
+
+            for (int i = output.Length; i < width; i++)
+                output += " ";
+            output += strng2;
+
+            Console.WriteLine(output);
         }
 
         public static void ClearOldSaves()
@@ -93,29 +106,55 @@ namespace BattleShips
             _gameScreen.LoadLatestSave();
         }
 
+        private static void UpdateKey()
+        {
+            while (true)
+                _key = Console.ReadKey(true).Key;
+        }
+
         private static void Main(string[] args)
         {
-            _saveSlots = 3;
+            Thread thread = new Thread(new ThreadStart(UpdateKey));
+            thread.Start();
+
+            _saveSlots = 20;
             _curScrn = ScreenState.MainMenu;
             _mainScreen = new MainMenu();
             _gameScreen = new GameScreen();
             _history = new History();
+            DrawFrame = true;
 
             while (true)
             {
+                var curKey = _key;
                 switch (_curScrn)
                 {
                     case ScreenState.MainMenu:
-                        _mainScreen.Update();
+                        _mainScreen.Update(curKey);
                         break;
                     case ScreenState.Game:
-                        _gameScreen.Update();
+                        _gameScreen.Update(curKey);
                         break;
                     case ScreenState.History:
-                        _history.Update();
+                        _history.Update(curKey);
                         break;
                 }
 
+                //reset key
+                if (curKey != ConsoleKey.None)
+                {
+                    _key = ConsoleKey.None;
+                    DrawFrame = true;
+                }
+
+                if (!DrawFrame)
+                {
+                    DrawFrame = false;
+                    continue;
+                }
+                DrawFrame = false;
+
+                Console.Clear();
                 switch (_curScrn)
                 {
                     case ScreenState.MainMenu:
@@ -128,8 +167,6 @@ namespace BattleShips
                         _history.Draw();
                         break;
                 }
-                Key = Console.ReadKey(intercept: true).Key;
-                Console.Clear();
             }
         }
     }

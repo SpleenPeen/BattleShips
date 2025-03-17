@@ -21,8 +21,18 @@ namespace BattleShips
         Board _enemyBoard;
         Board _playerBoard;
 
+
+        bool _play;
+        float _shotsPS;
+        Stopwatch _timer;
+        Stack<Vector2> _shots;
+
         public History()
         {
+            _timer = new Stopwatch();
+            _shots = new Stack<Vector2>();
+            _play = false;
+            _shotsPS = 1f;
             var files = Directory.GetFiles(Program.SavePath).ToList();
 
             if (Program.GetGameSave().Ongoing)
@@ -41,30 +51,104 @@ namespace BattleShips
             _curState = State.selection;
         }
 
-        public void Update()
+        public void Update(ConsoleKey key)
         {
             switch (_curState)
             {
                 case State.selection:
-                    SelectionUpdate();
+                    SelectionUpdate(key);
                     break;
                 case State.replay:
+                    ReplayUpdate(key);
                     break;
             }
         }
 
-        private void SelectionUpdate()
+        private void SelectionUpdate(ConsoleKey key)
         {
-            if (_selMenu.UpdateMenu(Program.Key))
+            if (_selMenu.UpdateMenu(key))
             {
+                _shots.Clear();
                 _curState = State.replay;
                 var selGame = Program.GetGameSave((short)_selMenu.Selected);
-                _enemyBoard = new Board(selGame.EnemySpaces, selGame.EShipSpaces, selGame.EShipsHit, Program.ArrayToQueue(selGame.EShots));
-                _playerBoard = new Board(selGame.PlayerSpaces, selGame.PShipSpaces, selGame.PShipsHit, Program.ArrayToQueue(selGame.PShots));
+                _enemyBoard = new Board(selGame.EnemySpaces, selGame.EShipSpaces, selGame.EShipsHit, Program.ArrayToLinkedList(selGame.EShots));
+                _playerBoard = new Board(selGame.PlayerSpaces, selGame.PShipSpaces, selGame.PShipsHit, Program.ArrayToLinkedList(selGame.PShots));
+
+                _enemyBoard.PrepForReplay();
+                _playerBoard.PrepForReplay();
+            }
+            else if (key == ConsoleKey.Escape)
+                Program.SwitchScreen(ScreenState.MainMenu);
+        }
+
+        private void ReplayUpdate(ConsoleKey key)
+        {
+            if (key == ConsoleKey.Escape)
+            {
+                _curState = State.selection;
+                return;
+            }
+
+            if (key == ConsoleKey.Spacebar)
+                _play = !_play;
+
+            var move = Vector2.GetMovementVector(key);
+            _shotsPS += -move.y * 0.1f;
+            ManualShots(move.x);
+
+            if (_play)
+            {
+                if (_playerBoard.Won || _enemyBoard.Won)
+                {
+                    _play = false;
+                    return;
+                }
+                if (!_timer.IsRunning)
+                    _timer.Restart();
+                if ((float)_timer.ElapsedMilliseconds/1000 >= (1/_shotsPS))
+                {
+                    Program.DrawFrame = true;
+                    _timer.Restart();
+                    NextShot();
+                }
             }
         }
 
+        private void ManualShots(int xMove)
+        {
+            if (xMove < 0)
+            {
+                if (_shots.Count == 0)
+                    return;
+                PreviousShot();
+            }
+            else if (xMove > 0)
+            {
+                if (_enemyBoard.Won || _playerBoard.Won)
+                    return;
+                NextShot();
+            }
+        }
 
+        private void NextShot()
+        {
+            if (_shots.Count % 2 == 0)
+            {
+                _shots.Push(_enemyBoard.FireReplay());
+            }
+            else
+            {
+                _shots.Push(_playerBoard.FireReplay());
+            }
+        }
+
+        private void PreviousShot()
+        {
+            if ((_shots.Count - 1) % 2 == 0)
+                _enemyBoard.UndoShot(_shots.Pop());
+            else
+                _playerBoard.UndoShot(_shots.Pop());
+        }
 
         public void Draw()
         {
@@ -74,12 +158,33 @@ namespace BattleShips
                     DrawSelection();
                     break;
                 case State.replay:
+                    DrawReplay();
                     break;
             }
         }
 
+        private void DrawReplay()
+        {
+            Console.WriteLine("Space: play/pause replay.");
+            Console.WriteLine("Left/Right: move back/forward 1 shot.");
+            Console.WriteLine("Up/Down: alter playback speed.");
+            Console.WriteLine("Escape: Go back to selection screen.");
+            Console.WriteLine();
+            Program.PrintPadded("Enemy Board", "Your Board", _enemyBoard.WidthString + 2);
+            Board.DrawStrings(Board.CombineStrings(_enemyBoard.GetDrawLines(), _playerBoard.GetDrawLines(), "  "));
+            Console.WriteLine();
+            Console.Write("Status: ");
+            if (_play)
+                Console.WriteLine("Playing");
+            else
+                Console.WriteLine("Paused");
+            Console.WriteLine("ShotsPerSecond: " + Math.Round(_shotsPS, 1));
+        }
+
         private void DrawSelection()
         {
+            Console.WriteLine("Press Escape to return to main menu.");
+            Console.WriteLine();
             _selMenu.DrawMenu();
         }
     }
@@ -119,9 +224,9 @@ namespace BattleShips
             }
         }
 
-        public void Update()
+        public void Update(ConsoleKey key)
         {
-            if (_mainMenu.UpdateMenu(Program.Key))
+            if (_mainMenu.UpdateMenu(key))
             {
                 var sel = _mainMenu.Selected;
                 if (!_continue)
@@ -180,7 +285,6 @@ namespace BattleShips
         public GameScreen()
         {
             _timer = new BetterStopwatch(0);
-            Program.Key = ConsoleKey.None;
             _shotTargets = new List<Vector2>();
             _checkAround = new List<Vector2>();
             _origin = new Vector2(-1, 0);
@@ -205,10 +309,10 @@ namespace BattleShips
                 );
         }
 
-        public void Update()
+        public void Update(ConsoleKey key)
         {
             //check whether to pause
-            if (Program.Key == ConsoleKey.Escape)
+            if (key == ConsoleKey.Escape)
                 _paused = !_paused;
             //if not pause update current screen
             if (!_paused)
@@ -216,16 +320,16 @@ namespace BattleShips
                 switch (_curState)
                 {
                     case GameState.BoardAllocation:
-                        BoardAlloUpdate(Program.Key);
+                        BoardAlloUpdate(key);
                         break;
                     case GameState.ShipAllocation:
-                        ShipAlloUpdate(Program.Key);
+                        ShipAlloUpdate(key);
                         break;
                     case GameState.DifficultyAllocation:
-                        DifficultyAlloUpdate(Program.Key);
+                        DifficultyAlloUpdate(key);
                         break;
                     case GameState.Gameplay:
-                        GameplayUpdate(Program.Key);
+                        GameplayUpdate(key);
                         break;
                 }
             }
@@ -233,7 +337,7 @@ namespace BattleShips
             else
             {
                 _timer.Stop();
-                if (_pauseMenu.UpdateMenu(Program.Key))
+                if (_pauseMenu.UpdateMenu(key))
                 {
                     switch (_pauseMenu.Selected)
                     {
@@ -334,8 +438,8 @@ namespace BattleShips
             _curState = GameState.Gameplay;
             var save = Program.GetGameSave();
 
-            _playerBoard = new Board(save.PlayerSpaces, save.PShipSpaces, save.PShipsHit, Program.ArrayToQueue(save.PShots));
-            _enemyBoard = new Board(save.EnemySpaces, save.EShipSpaces, save.EShipsHit, Program.ArrayToQueue(save.EShots));
+            _playerBoard = new Board(save.PlayerSpaces, save.PShipSpaces, save.PShipsHit, Program.ArrayToLinkedList(save.PShots));
+            _enemyBoard = new Board(save.EnemySpaces, save.EShipSpaces, save.EShipsHit, Program.ArrayToLinkedList(save.EShots));
             _checkAround = save.CheckAround;
             _shotTargets = save.ShotTargets;
             _timer = new BetterStopwatch(save.Timer);
@@ -529,33 +633,18 @@ namespace BattleShips
             else
                 Console.WriteLine("You Lost...");
             Console.WriteLine();
-            PrintPadded("Enemy Board", "Your Board");
+            Program.PrintPadded("Enemy Board", "Your Board", _enemyBoard.WidthString + _padding.Length);
 
             //draw the board
             Board.DrawStrings(Board.CombineStrings(_enemyBoard.GetDrawLines(), _playerBoard.GetDrawLines(), _padding));
 
             //draw stats
             Console.WriteLine();
-            PrintPadded($"Shots Fired: {_enemyBoard.ShotsFired}", $"Shots Fired: {_playerBoard.ShotsFired}");
-            PrintPadded($"Hit Rate: {_enemyBoard.HitRate}%", $"Hit Rate: {_playerBoard.HitRate}%");
+            Program.PrintPadded($"Shots Fired: {_enemyBoard.ShotsFired}", $"Shots Fired: {_playerBoard.ShotsFired}", _enemyBoard.WidthString + _padding.Length);
+            Program.PrintPadded($"Hit Rate: {_enemyBoard.HitRate}%", $"Hit Rate: {_playerBoard.HitRate}%", _enemyBoard.WidthString + _padding.Length);
             Console.WriteLine();
             Console.WriteLine($"Game Duration: {Math.Round((float)_timer.ElapsedMilliseconds/1000, 2)} seconds");
         }
-
-        private void PrintPadded(string strng1, string strng2)
-        {
-            var output = strng1;
-            var width = _playerBoard.WidthString;
-
-            for (int i = output.Length; i < width; i++)
-                output += " ";
-            output += _padding;
-            output += strng2;
-
-            Console.WriteLine(output);
-        }
-
-        
 
         private void GameplayUpdate(ConsoleKey key)
         {
@@ -602,7 +691,7 @@ namespace BattleShips
             Console.WriteLine();
 
             //draw boards
-            PrintPadded("Enemy Board", "Your Board");
+            Program.PrintPadded("Enemy Board", "Your Board", _enemyBoard.WidthString + _padding.Length);
             Board.DrawStrings(Board.CombineStrings(_enemyBoard.GetDrawLines(_selected, hidden: true), _playerBoard.GetDrawLines(), _padding), _enemyBoard, _selected);
         }
 

@@ -21,11 +21,11 @@ namespace BattleShips
         private SpaceStates[,] _spaces;
         int _shipSpaces;
         int _shipsHit;
-        Queue<Vector2> _shots;
+        LinkedList<Vector2> _shots;
 
         static char[] _displaySymbols = ['X', '*', 'O', 'H'];
 
-        public Board(short[][] spaces, int shipSpaces, int shipsHit, Queue<Vector2> shots)
+        public Board(short[][] spaces, int shipSpaces, int shipsHit, LinkedList<Vector2> shots)
         {
             ConvertShortsToSpaces(spaces);
             _shipSpaces = shipSpaces;
@@ -35,7 +35,7 @@ namespace BattleShips
 
         public Board(int width = 10, int height = 10)
         {
-            _shots = new Queue<Vector2>();
+            _shots = new LinkedList<Vector2>();
             _shipSpaces = 0;
             _shipsHit = 0;
             SetSize(width, height);
@@ -77,7 +77,7 @@ namespace BattleShips
             _spaces = newSpaces;
         }
 
-        public bool FireAt(int x, int y)
+        public bool FireAt(int x, int y, bool replay = false)
         {
             if (!WithinBounds(new Vector2(x,y)))
                 return false;
@@ -86,14 +86,16 @@ namespace BattleShips
             if (_spaces[y, x] == SpaceStates.empty)
             {
                 _spaces[y, x] = SpaceStates.miss;
-                _shots.Enqueue(new Vector2(x, y));
+                if (!replay)
+                    _shots.AddLast(new Vector2(x, y));
                 return true;
             }
             //check if hit
             if (_spaces[y, x] == SpaceStates.ship)
             {
                 _spaces[y, x] = SpaceStates.hit;
-                _shots.Enqueue(new Vector2(x, y));
+                if (!replay)
+                    _shots.AddLast(new Vector2(x, y));
                 _shipsHit++;
                 return true;
             }
@@ -418,6 +420,44 @@ namespace BattleShips
                 _shipSpaces++;
         }
 
+        public void PrepForReplay()
+        {
+            for (int y = 0; y < Height; y++)
+            {
+                for (int x = 0; x < Width; x++)
+                    UndoHit(x, y);
+            }
+        }
+
+        public Vector2 FireReplay()
+        {
+            var shot = _shots.First.Value;
+            FireAt(shot.x, shot.y, true);
+            _shots.RemoveFirst();
+            return shot;
+        }
+
+        public void UndoShot(Vector2 shot)
+        {
+            _shots.AddFirst(shot);
+            UndoHit(shot.x, shot.y);
+        }
+
+        private void UndoHit(int x, int y)
+        {
+            var curState = _spaces[y, x];
+            switch (curState)
+            {
+                case SpaceStates.hit:
+                    _spaces[y, x] = SpaceStates.ship;
+                    _shipsHit--;
+                    break;
+                case SpaceStates.miss:
+                    _spaces[y, x] = SpaceStates.empty;
+                    break;
+            }
+        }
+
         public bool WithinBounds(Vector2 pos)
         {
             if (pos.x < 0 || pos.x >= Width)
@@ -489,7 +529,7 @@ namespace BattleShips
             get { return (float)Math.Round( (float)_shipsHit / ShotsFired*100, 1); }
         }
 
-        public Queue<Vector2> Shots
+        public LinkedList<Vector2> Shots
         {
             get { return _shots; }
         }

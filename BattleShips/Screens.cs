@@ -38,15 +38,16 @@ namespace BattleShips
             if (Program.GetGameSave().Ongoing)
                 files.RemoveAt(files.Count - 1);
 
-            for (int i = 0; i < files.Count; i++)
-            {
-                files[i] = files[i].Substring(Program.SavePath.Length, files[i].Length - Program.SavePath.Length - 4);
-            }
-
             if (files.Count == 0)
                 return;
 
-            _selMenu = new Menu(files.ToArray());
+            string[] reversed = new string[files.Count];
+            for (int i = 0; i < files.Count; i++)
+            {
+                reversed[files.Count - i - 1] = files[i].Substring(Program.SavePath.Length, files[i].Length - Program.SavePath.Length - 4);
+            }
+
+            _selMenu = new Menu(reversed);
 
             _curState = State.selection;
         }
@@ -100,6 +101,7 @@ namespace BattleShips
             {
                 if (_playerBoard.Won || _enemyBoard.Won)
                 {
+                    Program.DrawFrame = true;
                     _play = false;
                     return;
                 }
@@ -253,6 +255,8 @@ namespace BattleShips
 
         public void Draw()
         {
+            Console.WriteLine("Use UP/DOWN or W/S keys to navigate menus.");
+            Console.WriteLine("Press SPACE/ENTER to confirm selection in menus.");
             _mainMenu.DrawMenu();
         }
     }

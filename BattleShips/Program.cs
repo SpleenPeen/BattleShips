@@ -62,16 +62,31 @@ namespace BattleShips
                 return JsonSerializer.Deserialize<GameSave>(File.ReadAllText(files[ind]));
         }
 
+        public static GameSave? GetGameSave(string name)
+        {
+            var file = File.ReadAllText(Program.SavePath + name);
+            return JsonSerializer.Deserialize<GameSave>(file);
+        }
+
         public static void PrintPadded(string strng1, string strng2, int pad)
         {
             var output = strng1;
-            var width = pad;
 
-            for (int i = output.Length; i < width; i++)
+            for (int i = output.Length; i < pad; i++)
                 output += " ";
             output += strng2;
 
             Console.WriteLine(output);
+        }
+
+        public static void WritePadded(string inpt, int pad)
+        {
+            var outpt = "";
+            var curOut = inpt;
+            for (int j = curOut.Length; j < pad; j++)
+                curOut += " ";
+            outpt += curOut;
+            Console.Write(outpt);
         }
 
         public static void ClearOldSaves()

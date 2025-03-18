@@ -246,7 +246,7 @@ namespace BattleShips
             //if no valid files were found, draw relevant message and return
             if (_selMenu == null)
             {
-                Console.WriteLine("You currently have no past game!");
+                Console.WriteLine("You currently have no past games!");
                 return;
             }
 

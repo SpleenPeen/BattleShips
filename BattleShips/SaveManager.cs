@@ -67,8 +67,26 @@ namespace BattleShips
             if (save == null)
                 return null;
 
-            //check if data is formated correctly
+            //check if save file tampered and fix when necessary
             save.Difficulty = Math.Clamp(save.Difficulty, 0, 2);
+
+            //check board sizes
+            var maxHeight = Math.Max(save.PlayerSpaces.Length, save.EnemySpaces.Length);
+            int maxWidth = 0;
+            for (int board = 0; board < 2; board++)
+            {
+                var curB = save.PlayerSpaces;
+                if (board == 1)
+                    curB = save.EnemySpaces;
+                for (int row = 0; row < curB.Length; row++)
+                    maxWidth = Math.Max(maxWidth, curB[row].Length);
+            }
+
+            if (maxWidth == 0  || maxHeight == 0)
+                return null;
+
+            //fill out with blanks 
+
             return save;
         }
         #endregion
@@ -79,7 +97,7 @@ namespace BattleShips
             get
             {
                 //check whether the directory exists
-                if (Directory.Exists(SavePath))
+                if (Empty)
                     return Array.Empty<FileInfo>();
 
                 //return files sorted by creation time (latest -> oldest)
@@ -112,6 +130,18 @@ namespace BattleShips
                 }
                 //if found no valid files, return 0
                 return 0;
+            }
+        }
+
+        public bool Empty
+        {
+            get
+            {
+                if (!Directory.Exists(SavePath))
+                    return true;
+                if (Directory.GetFiles(SavePath).Length == 0)
+                    return true;
+                return false;
             }
         }
 

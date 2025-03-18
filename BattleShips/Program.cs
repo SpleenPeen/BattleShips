@@ -12,23 +12,19 @@ namespace BattleShips
 
     internal class Program
     {
-        public static string SavePath { get; private set; } = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + @"\BattleShips\";
-        public static string SaveName { get; private set; } = "GameSave";
         public static Random RNG { get; private set; } = new Random();
         static ConsoleKey _key;
         static GameScreen _gameScreen;
         static MainMenu _mainScreen;
         static History _history;
         static ScreenState _curScrn;
-        static short _saveSlots;
-        public static bool DrawFrame;
 
         public static void SwitchScreen(ScreenState screen)
         {
             //switch screen
             _curScrn = screen;
 
-            //reset the screen after switching back to it
+            //reset the screen its switching to
             switch (screen)
             {
                 case ScreenState.MainMenu:
@@ -43,133 +39,64 @@ namespace BattleShips
             }
         }
 
-        public static LinkedList<type> ArrayToLinkedList<type>(type[] array)
-        {
-            LinkedList<type> list = new LinkedList<type>();
-
-            foreach (var item in array)
-            {
-                list.AddLast(item);
-            }
-            return list;
-        }
-
-        public static GameSave? GetGameSave(short ind = -1)
-        {
-            var files = Directory.GetFiles(SavePath);
-            if (ind == -1)
-                return JsonSerializer.Deserialize<GameSave>(File.ReadAllText(new DirectoryInfo(SavePath).GetFiles().OrderBy(f => f.LastWriteTime).ToList()[files.Length-1].FullName));
-            else
-                return JsonSerializer.Deserialize<GameSave>(File.ReadAllText(files[ind]));
-        }
-
-        public static GameSave? GetGameSave(string name)
-        {
-            var file = File.ReadAllText(Program.SavePath + name);
-            return JsonSerializer.Deserialize<GameSave>(file);
-        }
-
-        public static void PrintPadded(string strng1, string strng2, int pad)
-        {
-            var output = strng1;
-
-            for (int i = output.Length; i < pad; i++)
-                output += " ";
-            output += strng2;
-
-            Console.WriteLine(output);
-        }
-
-        public static void WritePadded(string inpt, int pad)
-        {
-            var outpt = "";
-            var curOut = inpt;
-            for (int j = curOut.Length; j < pad; j++)
-                curOut += " ";
-            outpt += curOut;
-            Console.Write(outpt);
-        }
-
-        public static void ClearOldSaves()
-        {
-            var files = Directory.GetFiles(Program.SavePath);
-            if (files.Length >= _saveSlots)
-            {
-                for (int i = 0; i < files.Length - (_saveSlots-1); i++)
-                {
-                    File.Delete(files[i]);
-                }
-            }
-        }
-
-        public static short GetLatestSaveNum()
-        {
-            var files = Directory.GetFiles(SavePath);
-            var file = files[files.Length - 1];
-            short cur;
-            short outpt = 0;
-            int i = 1;
-            while (short.TryParse(file.AsSpan(file.Length-(4+i), i), out cur))
-            {
-                outpt = cur;
-                i++;
-            }
-            return outpt;
-        }
-
-        public static void LoadLatestSave()
-        {
-            _gameScreen.LoadLatestSave();
-        }
-
         private static void UpdateKey()
         {
+            //sets key to the most recently pressed key
             while (true)
                 _key = Console.ReadKey(true).Key;
         }
 
         private static void Main(string[] args)
         {
+            //create a separate thread for getting key inputs
             Thread thread = new Thread(new ThreadStart(UpdateKey));
             thread.Start();
 
-            _saveSlots = 20;
+            //set up save manager
+            SaveManager.Instance.MaxSaves = 20;
+            SaveManager.Instance.SaveName = "GameSave";
+            SaveManager.Instance.SavePath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + @"\BattleShips\";
+            
+            //set initial state
             _curScrn = ScreenState.MainMenu;
+
+            //initialise all the screens
             _mainScreen = new MainMenu();
             _gameScreen = new GameScreen();
             _history = new History();
-            DrawFrame = true;
+
+            //draw the first frame
+            var drawFrame = true;
 
             while (true)
             {
+                //set curKey to the current _key, in order to prevent the key switching mid update
                 var curKey = _key;
+
+                //run update methods for current screen
                 switch (_curScrn)
                 {
                     case ScreenState.MainMenu:
-                        _mainScreen.Update(curKey);
+                        drawFrame = _mainScreen.Update(curKey);
                         break;
                     case ScreenState.Game:
-                        _gameScreen.Update(curKey);
+                        drawFrame = _gameScreen.Update(curKey);
                         break;
                     case ScreenState.History:
-                        _history.Update(curKey);
+                        drawFrame = _history.Update(curKey);
                         break;
                 }
 
-                //reset key
+                //reset key press after it's been processed
                 if (curKey != ConsoleKey.None)
-                {
                     _key = ConsoleKey.None;
-                    DrawFrame = true;
-                }
 
-                if (!DrawFrame)
-                {
-                    DrawFrame = false;
+                //continue to next frame if not set to draw
+                if (!drawFrame)
                     continue;
-                }
-                DrawFrame = false;
+                drawFrame = false; //reset drawframe
 
+                //clear screen and run the current screens draw method
                 Console.Clear();
                 switch (_curScrn)
                 {

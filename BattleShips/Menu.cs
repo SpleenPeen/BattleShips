@@ -10,6 +10,7 @@
         bool _centred;
         string _desc;
         int _width;
+        public bool Draw { get; private set; }
 
         public Menu(string[] options, string desc = "", int selected = 0, int width = 0, bool outline = false, bool centred = false)
         {
@@ -32,9 +33,14 @@
 
         public bool UpdateMenu(ConsoleKey key)
         {
+            Draw = false;
+            
             var move = Vector2.GetMovementVector(key);
 
+            var curSel = _sel;
             _sel = Math.Clamp(_sel + move.y, 0, _opts.Length-1);
+            if (curSel != _sel)
+                Draw = true;
 
             if (key == ConsoleKey.Spacebar || key == ConsoleKey.Enter)
                 return true;

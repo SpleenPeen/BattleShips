@@ -56,104 +56,137 @@ namespace BattleShips
             _curState = State.selection;
         }
 
-        public void Update(ConsoleKey key)
+        public bool Update(ConsoleKey key)
         {
+            //run the current states update
             switch (_curState)
             {
                 case State.selection:
-                    SelectionUpdate(key);
-                    break;
+                    return SelectionUpdate(key);
                 case State.replay:
-                    ReplayUpdate(key);
-                    break;
+                    return ReplayUpdate(key);
             }
+            return false;
         }
 
-        private void SelectionUpdate(ConsoleKey key)
+        private bool SelectionUpdate(ConsoleKey key)
         {
+            //if ESCAPE pressed, go back to main menu
             if (key == ConsoleKey.Escape)
+            {
                 Program.SwitchScreen(ScreenState.MainMenu);
+                return true;
+            }
 
+            //if there were no valid savefiles, return
             if (_selMenu == null)
-                return;
+                return false;
 
+            //update selection menu
             if (_selMenu.UpdateMenu(key))
             {
-                _shots.Clear();
+                //change state and reset variables
+                _shots.Clear(); //in case something was previously replayed
                 _curState = State.replay;
-                var selGame = Program.GetGameSave(_selMenu.SelText);
-                _enemyBoard = new Board(selGame.EnemySpaces, selGame.EShipSpaces, selGame.EShipsHit, Program.ArrayToLinkedList(selGame.EShots));
-                _playerBoard = new Board(selGame.PlayerSpaces, selGame.PShipSpaces, selGame.PShipsHit, Program.ArrayToLinkedList(selGame.PShots));
 
+                //prepare boards for replay
+                var selGame = SaveManager.Instance.GetGameSave(_selMenu.SelText);
+                _enemyBoard = new Board(selGame.EnemySpaces, selGame.EShipSpaces, selGame.EShipsHit, GeneralUtils.ArrayToLinkedList(selGame.EShots));
+                _playerBoard = new Board(selGame.PlayerSpaces, selGame.PShipSpaces, selGame.PShipsHit, GeneralUtils.ArrayToLinkedList(selGame.PShots));
                 _enemyBoard.PrepForReplay();
                 _playerBoard.PrepForReplay();
+                return true;
             }
+            return _selMenu.Draw; //draw if has move selection
         }
 
-        private void ReplayUpdate(ConsoleKey key)
+        private bool ReplayUpdate(ConsoleKey key)
         {
+            var draw = false;
+
+            //if ESCAPE pressed, go back to selection state
             if (key == ConsoleKey.Escape)
             {
                 _curState = State.selection;
-                return;
+                return true;
             }
 
+            //if SPACE pressed, set play to true
             if (key == ConsoleKey.Spacebar)
                 _play = !_play;
 
+            //Adjust shot speed and current shot using the move vector
             var move = Vector2.GetMovementVector(key);
-            _shotsPS += -move.y * 0.1f;
-            ManualShots(move.x);
+            var curShot = _shotsPS;
+            _shotsPS += Math.Max(-move.y * 0.1f, 0.1f); //UP/DOWN adjusts shot speed
+            if (curShot != _shotsPS)
+                draw = true;
+            if (ManualShots(move.x)) //LEFT/RIGHT changes current shot 
+                draw = true;
 
-            if (_play)
+            //if not set to play return, otherwise
+            if (!_play)
+                return false;
+
+            //reset to paused if the game is over
+            if (_playerBoard.Won || _enemyBoard.Won)
             {
-                if (_playerBoard.Won || _enemyBoard.Won)
-                {
-                    Program.DrawFrame = true;
-                    _play = false;
-                    return;
-                }
-                if (!_timer.IsRunning)
-                    _timer.Restart();
-                if ((float)_timer.ElapsedMilliseconds/1000 >= (1/_shotsPS))
-                {
-                    Program.DrawFrame = true;
-                    _timer.Restart();
-                    NextShot();
-                }
+                _play = false;
+                return true;
             }
+            //restart the timer if its not running
+            if (!_timer.IsRunning)
+                _timer.Restart();
+
+            //if timer has crossed the interval to fire, draw next shot and restart timer
+            if ((float)_timer.ElapsedMilliseconds / 1000 >= (1 / _shotsPS))
+            {
+                _timer.Restart();
+                NextShot();
+                return true;
+            }
+            return draw;
         }
 
-        private void ManualShots(int xMove)
+        private bool ManualShots(int xMove)
         {
+            //if left arrow has been pressed, undo last shot
             if (xMove < 0)
             {
+                //if there are no shots to undo return
                 if (_shots.Count == 0)
-                    return;
+                    return false;
+
+                //otherwise undo last shot
                 PreviousShot();
+                return true;
             }
+            //if right arrow pressed
             else if (xMove > 0)
             {
+                //return if no more shots left
                 if (_enemyBoard.Won || _playerBoard.Won)
-                    return;
+                    return false;
+
+                //otherwise shoot next shot
                 NextShot();
+                return true;
             }
+            return false;
         }
 
         private void NextShot()
         {
+            //fire at appropriate board, depending on turn order
             if (_shots.Count % 2 == 0)
-            {
                 _shots.Push(_enemyBoard.FireReplay());
-            }
             else
-            {
                 _shots.Push(_playerBoard.FireReplay());
-            }
         }
 
         private void PreviousShot()
         {
+            //undo shot from appropriate board, depending on turn order
             if ((_shots.Count - 1) % 2 == 0)
                 _enemyBoard.UndoShot(_shots.Pop());
             else
@@ -162,6 +195,7 @@ namespace BattleShips
 
         public void Draw()
         {
+            //draw screen depending on state
             switch (_curState)
             {
                 case State.selection:
@@ -175,14 +209,24 @@ namespace BattleShips
 
         private void DrawReplay()
         {
+            string padding = "  "; //space inbetween boards
+
+            //draw instructions
             Console.WriteLine("Space: play/pause replay.");
             Console.WriteLine("Left/Right: move back/forward 1 shot.");
             Console.WriteLine("Up/Down: alter playback speed.");
             Console.WriteLine("Escape: Go back to selection screen.");
             Console.WriteLine();
-            Program.PrintPadded("Enemy Board", "Your Board", _enemyBoard.WidthString + 2);
-            Board.DrawStrings(Board.CombineStrings(_enemyBoard.GetDrawLines(), _playerBoard.GetDrawLines(), "  "));
+
+            //draw board tags
+            GeneralUtils.WritePadded("Enemy Board", _enemyBoard.WidthString + padding.Length);
+            Console.WriteLine("Your Board");
+
+            //draw boards
+            Board.DrawStrings(Board.CombineStrings(_enemyBoard.GetDrawLines(), _playerBoard.GetDrawLines(), padding));
             Console.WriteLine();
+
+            //draw play status and shot speed
             Console.Write("Status: ");
             if (_play)
                 Console.WriteLine("Playing");
@@ -193,52 +237,57 @@ namespace BattleShips
 
         private void DrawSelection()
         {
-            int padding = 10;
+            int padding = 10; //padding between file stats
+
+            //draw instructions
             Console.WriteLine("Press Escape to return to main menu.");
             Console.WriteLine();
 
+            //if no valid files were found, draw relevant message and return
             if (_selMenu == null)
             {
                 Console.WriteLine("You currently have no past game!");
                 return;
             }
 
+            //draw descriptors
             Console.ForegroundColor = ConsoleColor.Gray;
-            Program.WritePadded("", padding);
-            Program.WritePadded("", padding);
-            Program.WritePadded("State", padding);
-            Program.WritePadded("Diff", padding);
-            Program.WritePadded("Timer", padding);
-            Program.WritePadded("Date", padding);
-            Console.WriteLine();
+            GeneralUtils.WritePadded("", padding*2);
+            GeneralUtils.WritePadded("State", padding);
+            GeneralUtils.WritePadded("Diff", padding);
+            GeneralUtils.WritePadded("Timer", padding);
+            GeneralUtils.WritePadded("Date", padding, true);
             Console.ResetColor();
 
+            //draw menu
             _selMenu.DrawMenu();
 
+            //draw file stats
             for (int i = 0; i < _files.Count(); i++)
             {
+                //change draw colour (depending on if the file is selected)
                 var curCol = _selMenu.DefCol;
                 if (i == _selMenu.Selected)
                     curCol = _selMenu.SelCol;
 
-                var save = Program.GetGameSave(_selMenu.GetOptString(i));
-                Console.CursorLeft = 20;
+                //deserialise save file and place cursor in right spot
+                var save = SaveManager.Instance.GetGameSave(_selMenu.GetOptString(i));
+                if (save == null)
+                    continue;
+                Console.CursorLeft = padding*2;
                 Console.CursorTop = i+3;
 
+                //draw win/loss
                 var won = save.EShipsHit == save.EShipSpaces;
                 if (won)
                 {
                     Console.ForegroundColor = ConsoleColor.DarkGreen;
-                    if (i == _selMenu.Selected)
-                        Console.ForegroundColor = ConsoleColor.Green;
-                    Program.WritePadded("Won", padding);
+                    GeneralUtils.WritePadded("Won", padding);
                 }
                 else
                 {
                     Console.ForegroundColor = ConsoleColor.DarkRed;
-                    if (i == _selMenu.Selected)
-                        Console.ForegroundColor = ConsoleColor.Red;
-                    Program.WritePadded("Lost", padding);
+                    GeneralUtils.WritePadded("Lost", padding);
                 }
 
                 var diffString = "Easy";
@@ -293,7 +342,7 @@ namespace BattleShips
                 if (Directory.GetFiles(Program.SavePath).Length == 0)
                     return opts.ToArray();
 
-                if (!Program.GetGameSave().Ongoing)
+                if (!Program.GetLatestSave().Ongoing)
                     return opts.ToArray();
 
                 opts.Insert(0, "Continue");
@@ -504,7 +553,7 @@ namespace BattleShips
             else if (Directory.GetFiles(Program.SavePath).Length > 0)
             {
                 save = Program.GetLatestSaveNum();
-                if (!Program.GetGameSave().Ongoing)
+                if (!Program.GetLatestSave().Ongoing)
                 {
                     save++;
                     Program.ClearOldSaves();
@@ -517,7 +566,7 @@ namespace BattleShips
         public void LoadLatestSave()
         {
             _curState = GameState.Gameplay;
-            var save = Program.GetGameSave();
+            var save = Program.GetLatestSave();
 
             _playerBoard = new Board(save.PlayerSpaces, save.PShipSpaces, save.PShipsHit, Program.ArrayToLinkedList(save.PShots));
             _enemyBoard = new Board(save.EnemySpaces, save.EShipSpaces, save.EShipsHit, Program.ArrayToLinkedList(save.EShots));

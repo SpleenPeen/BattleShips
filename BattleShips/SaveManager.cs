@@ -67,27 +67,76 @@ namespace BattleShips
             if (save == null)
                 return null;
 
-            //check if save file tampered and fix when necessary
-            save.Difficulty = Math.Clamp(save.Difficulty, 0, 2);
-
-            //check board sizes
-            var maxHeight = Math.Max(save.PlayerSpaces.Length, save.EnemySpaces.Length);
-            int maxWidth = 0;
-            for (int board = 0; board < 2; board++)
-            {
-                var curB = save.PlayerSpaces;
-                if (board == 1)
-                    curB = save.EnemySpaces;
-                for (int row = 0; row < curB.Length; row++)
-                    maxWidth = Math.Max(maxWidth, curB[row].Length);
-            }
-
-            if (maxWidth == 0  || maxHeight == 0)
+            //check if valid
+            if (!IsValid(save))
                 return null;
 
-            //fill out with blanks 
-
             return save;
+        }
+
+        private bool IsValid(GameSave save)
+        {
+            //clamp difficulty
+            save.Difficulty = Math.Clamp(save.Difficulty, 0, 2);
+
+            //clamp timer
+            save.Timer = Math.Max(save.Timer, 0);
+
+            //check height
+            if (save.PlayerSpaces.Length != save.EnemySpaces.Length)
+                return false;
+
+            for (int board = 0; board < 2; board++)
+            {
+                //switch board on loop
+                var curB = save.PlayerSpaces;
+                var curShots = save.PShots;
+                var curShipS = save.PShipSpaces;
+                var curShipH = save.PShipsHit;
+                if (board == 1)
+                {
+                    curB = save.EnemySpaces;
+                    curShots = save.EShots;
+                    curShipS = save.EShipSpaces;
+                    curShipH = save.EShipsHit;
+                }
+                
+                //check width
+                for (int row = 0; row < curB.Length; row++)
+                {
+                    if (curB[row].Length != save.PlayerSpaces[0].Length)
+                        return false;
+                }
+
+                //check spaces
+                for (int y = 0; y < curB.Length; y++)
+                {
+                    for (int x = 0; x < curB[y].Length; x++)
+                    {
+                        ref var space = ref curB[y][x];
+                        if (space < 0 || space > 3)
+                            return false;
+
+                        if (space == 1 || space == 3)
+                            curShipS--;
+                        if (space == 3)
+                            curShipH--;
+                        if (space > 1)
+                        {
+                            if (!curShots.Any(v => v.Equals(new Vector2(x,y))))
+                            {
+                                return false;
+                            }
+                        }    
+                    }
+                }
+
+                if (curShipH != 0)
+                    return false;
+                if (curShipS != 0)
+                    return false;
+            }
+            return true;
         }
         #endregion
 

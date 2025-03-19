@@ -28,31 +28,35 @@ namespace BattleShips
 
         public History()
         {
+            //initialise variables
             _timer = new Stopwatch();
             _shots = new Stack<Vector2>();
             _play = false;
             _shotsPS = 1f;
-            var files = new DirectoryInfo(Program.SavePath).GetFiles().OrderBy(f => f.LastWriteTime).ToList();
 
+            //get all save files, ordered by creation date
+            var files = SaveManager.Instance.FilesByDate.ToList();
+
+            //if there are no files return
             if (files.Count == 0)
                 return;
 
-            if (Program.GetGameSave(files[files.Count-1].Name).Ongoing)
-                files.RemoveAt(files.Count - 1);
+            //if latest file is ongoing, remove it
+            if (SaveManager.Instance.IsOngoing(SaveManager.Instance.GetGameSave(files[0].Name)))
+                files.RemoveAt(0);
 
+            //check if at 0 again
             if (files.Count == 0)
                 return;
 
-            _files = new FileInfo[files.Count];
-            for (int i = 0; i < files.Count; i++)
-                _files[i] = files[files.Count - i - 1];
-
+            //get all file names and send them into menu options
             string[] names = new string[files.Count];
             for (int i = 0; i < files.Count; i++)
-                names[i] = files[files.Count - i -1].Name;
+                names[i] = files[i].Name;
 
             _selMenu = new Menu(names);
 
+            //set state to selection screen
             _curState = State.selection;
         }
 
@@ -246,7 +250,7 @@ namespace BattleShips
             //if no valid files were found, draw relevant message and return
             if (_selMenu == null)
             {
-                Console.WriteLine("You currently have no past games!");
+                Console.WriteLine("You currently have no past games");
                 return;
             }
 
@@ -308,10 +312,10 @@ namespace BattleShips
                     if (_selMenu.Selected == i)
                         Console.ForegroundColor = ConsoleColor.Red;
                 }
-                Program.WritePadded(diffString, padding);
+                GeneralUtils.WritePadded(diffString, padding);
                 Console.ForegroundColor = curCol;
-                Program.WritePadded(Math.Round((float)save.Timer/1000, 2).ToString() + "s", padding);
-                Program.WritePadded(_files[i].LastWriteTime.ToLongDateString(), padding);
+                GeneralUtils.WritePadded(Math.Round((float)save.Timer/1000, 2).ToString() + "s", padding);
+                GeneralUtils.WritePadded(_files[i].LastWriteTime.ToLongDateString(), padding);
             }
             Console.ResetColor();
         }
@@ -320,13 +324,10 @@ namespace BattleShips
     internal class MainMenu
     {
         Menu _mainMenu;
-        bool _continue;
 
         public MainMenu()
         {
-            List<String> opts;
-
-            _continue = false;
+            //set initial variables
             _mainMenu = new Menu(Opts, outline: true, centred: true);
         }
 
@@ -334,37 +335,34 @@ namespace BattleShips
         {
             get
             {
+                //set basic options
                 List<string> opts = ["New Game", "History", "Exit"];
 
-                if (!Directory.Exists(Program.SavePath))
+                //check if there are any save files
+                if (SaveManager.Instance.GetOngoingSave == null)
                     return opts.ToArray();
 
-                if (Directory.GetFiles(Program.SavePath).Length == 0)
-                    return opts.ToArray();
-
-                if (!Program.GetLatestSave().Ongoing)
-                    return opts.ToArray();
-
+                //otherwise add a continue option and return options
                 opts.Insert(0, "Continue");
-
-                _continue = true;
                 return opts.ToArray();
             }
         }
 
-        public void Update(ConsoleKey key)
+        public bool Update(ConsoleKey key)
         {
+            //if one of the main menu options was selected
             if (_mainMenu.UpdateMenu(key))
             {
+                //adjust selected based on whether continue is one of the options
                 var sel = _mainMenu.Selected;
-                if (!_continue)
+                if (_mainMenu.Count != 4)
                     sel++;
 
+                //switch to correct screen, or exit, based on selected option
                 switch (sel)
                 {
                     case 0:
-                        Program.SwitchScreen(ScreenState.Game);
-                        Program.LoadLatestSave();
+                        Program.SwitchScreen(ScreenState.Game, true);
                         break;
                     case 1:
                         Program.SwitchScreen(ScreenState.Game);
@@ -376,11 +374,16 @@ namespace BattleShips
                         Environment.Exit(0);
                         break;
                 }
+                return true;
             }
+
+            //draw menu when switching between options
+            return _mainMenu.Draw;
         }
 
         public void Draw()
         {
+            //draw instruction and menu
             Console.WriteLine("Use UP/DOWN or W/S keys to navigate menus.");
             Console.WriteLine("Press SPACE/ENTER to confirm selection in menus.");
             _mainMenu.DrawMenu();
@@ -414,6 +417,7 @@ namespace BattleShips
         
         public GameScreen()
         {
+            //initialise variables
             _timer = new BetterStopwatch(0);
             _shotTargets = new List<Vector2>();
             _checkAround = new List<Vector2>();
@@ -439,7 +443,7 @@ namespace BattleShips
                 );
         }
 
-        public void Update(ConsoleKey key)
+        public bool Update(ConsoleKey key)
         {
             //check whether to pause
             if (key == ConsoleKey.Escape)
@@ -450,17 +454,13 @@ namespace BattleShips
                 switch (_curState)
                 {
                     case GameState.BoardAllocation:
-                        BoardAlloUpdate(key);
-                        break;
+                        return BoardAlloUpdate(key);
                     case GameState.ShipAllocation:
-                        ShipAlloUpdate(key);
-                        break;
+                        return ShipAlloUpdate(key);
                     case GameState.DifficultyAllocation:
-                        DifficultyAlloUpdate(key);
-                        break;
+                        return DifficultyAlloUpdate(key);
                     case GameState.Gameplay:
-                        GameplayUpdate(key);
-                        break;
+                        return GameplayUpdate(key);
                 }
             }
             //otherwise update the pause menu
@@ -486,7 +486,9 @@ namespace BattleShips
                             break;
                     }
                 }
+                return _pauseMenu.Draw;
             }
+            return false;
         }
 
         private bool Savable
@@ -501,6 +503,7 @@ namespace BattleShips
 
         public void Draw()
         {
+            //call current screens draw method, and draw the pause menu (if games paused)
             switch (_curState)
             {
                 case GameState.BoardAllocation:
@@ -526,61 +529,44 @@ namespace BattleShips
 
         private void SaveGame()
         {
-            var curSave = new GameSave();
-            //player board
-            curSave.PlayerSpaces = _playerBoard.SpacesNum;
-            curSave.PShipSpaces = _playerBoard.ShipSpaces;
-            curSave.PShipsHit = _playerBoard.ShipsHit;
-            curSave.PShots = _playerBoard.Shots.ToArray();
-
-            //enemy board
-            curSave.EnemySpaces = _enemyBoard.SpacesNum;
-            curSave.EShipSpaces = _enemyBoard.ShipSpaces;
-            curSave.EShipsHit = _enemyBoard.ShipsHit;
-            curSave.EShots = _enemyBoard.Shots.ToArray();
-
-            //game state
-            curSave.Timer = _timer.ElapsedMilliseconds;
-            curSave.Difficulty = _diffAloMenu.Selected;
-            curSave.ShotTargets = _shotTargets;
-            curSave.CheckAround = _checkAround;
-
-            string json = JsonSerializer.Serialize(curSave);
-            int save = 0;
-
-            if (!Directory.Exists(Program.SavePath))
-                Directory.CreateDirectory(Program.SavePath);
-            else if (Directory.GetFiles(Program.SavePath).Length > 0)
-            {
-                save = Program.GetLatestSaveNum();
-                if (!Program.GetLatestSave().Ongoing)
-                {
-                    save++;
-                    Program.ClearOldSaves();
-                }
-            }
-            
-            File.WriteAllText(@$"{Program.SavePath}{Program.SaveName}{save}.txt", json);
+            //send all relevant variables to savemanager
+            SaveManager.Instance.SaveFile(
+            _playerBoard.SpacesNum,
+            _playerBoard.ShipSpaces,
+            _playerBoard.ShipsHit,
+            _playerBoard.Shots.ToArray(),
+            _enemyBoard.SpacesNum,
+            _enemyBoard.ShipSpaces,
+            _enemyBoard.ShipsHit,
+            _enemyBoard.Shots.ToArray(),
+            _timer.ElapsedMilliseconds,
+            _diffAloMenu.Selected,
+            _shotTargets,
+           _checkAround
+            );
         }
 
-        public void LoadLatestSave()
+        public void LoadSave(GameSave save)
         {
+            //set state to gameplay and load all relevant variables
             _curState = GameState.Gameplay;
-            var save = Program.GetLatestSave();
-
-            _playerBoard = new Board(save.PlayerSpaces, save.PShipSpaces, save.PShipsHit, Program.ArrayToLinkedList(save.PShots));
-            _enemyBoard = new Board(save.EnemySpaces, save.EShipSpaces, save.EShipsHit, Program.ArrayToLinkedList(save.EShots));
+            _playerBoard = new Board(save.PlayerSpaces, save.PShipSpaces, save.PShipsHit, GeneralUtils.ArrayToLinkedList(save.PShots));
+            _enemyBoard = new Board(save.EnemySpaces, save.EShipSpaces, save.EShipsHit, GeneralUtils.ArrayToLinkedList(save.EShots));
             _checkAround = save.CheckAround;
             _shotTargets = save.ShotTargets;
             _timer = new BetterStopwatch(save.Timer);
             _diffAloMenu.Selected = save.Difficulty;
         }
 
-        private void BoardAlloUpdate(ConsoleKey key)
+        private bool BoardAlloUpdate(ConsoleKey key)
         {
             var newSize = Vector2.GetMovementVector(key);
             newSize.x = Math.Max(1, _playerBoard.Width + newSize.x);
             newSize.y = Math.Max(1, _playerBoard.Height + newSize.y);
+
+            var draw = false;
+            if (newSize.x != _playerBoard.Width || newSize.y != _playerBoard.Height)
+                draw = true;
 
             _playerBoard.SetSize(newSize.x, newSize.y);
 
@@ -588,11 +574,14 @@ namespace BattleShips
             {
                 _enemyBoard.SetSize(_playerBoard.Width, _playerBoard.Height);
                 _curState = GameState.ShipAllocation;
+                draw = true;
             }
+            return draw;
         }
 
         private void BoardAlloDraw()
         {
+            //draw instructions and player board
             Console.WriteLine("Use arrow keys or WASD to scale the size of your board.");
             Console.WriteLine("Press enter to confirm size.");
             Console.WriteLine("You can press escape at anytime to pause.");
@@ -600,24 +589,28 @@ namespace BattleShips
             Board.DrawStrings(_playerBoard.GetDrawLines());
         }
 
-        private void DifficultyAlloUpdate(ConsoleKey key)
+        private bool DifficultyAlloUpdate(ConsoleKey key)
         {
+            //update difficulty menu
             if (_diffAloMenu.UpdateMenu(key))
             {
                 PrepareShotTargets();
                 _timer.Start();
                 _curState = GameState.Gameplay;
             }
+            return _diffAloMenu.Draw;
         }
 
         private void DifficultyAlloDraw()
         {
+            //draw gameplay screen and the difficulty menu on top
             GameplayDraw();
             _diffAloMenu.DrawMenu();
         }
 
         private void PrepareShotTargets()
         {
+            //get appropriate shot targets, depending on difficulty
             if (_diffAloMenu.Selected == 0 || _diffAloMenu.Selected == 1)
                 AllSpacesTargets();
             else
@@ -626,6 +619,7 @@ namespace BattleShips
 
         private void AllSpacesTargets()
         {
+            //set all spaces as targets
             for (int y = 0; y < _playerBoard.Height; y++)
             {
                 for (int x = 0; x < _playerBoard.Width; x++)
@@ -637,6 +631,7 @@ namespace BattleShips
 
         private void ShipSpacesTargets()
         {
+            //set shit spaces as targets
             for (int y = 0; y < _playerBoard.Height; y++)
             {
                 for (int x = 0; x < _playerBoard.Width; x++)
@@ -647,8 +642,9 @@ namespace BattleShips
             }
         }
 
-        private void ShipAlloUpdate(ConsoleKey key)
+        private bool ShipAlloUpdate(ConsoleKey key)
         {
+            bool draw = false;
             //handle keypress
             //handle starting selection, ending selection and confirming selection
             switch (key)
@@ -661,9 +657,11 @@ namespace BattleShips
                             break;
                         _origin.x = _selected.x;
                         _origin.y = _selected.y;
+                        draw = true;
                     }
                     else
                     {
+                        draw = true;
                         //change all selected spaces to ship spaces
                         int shipSize = 0;
                         for (int y = Math.Min(_origin.y, _selected.y); y <= Math.Max(_selected.y, _origin.y); y++)
@@ -698,6 +696,7 @@ namespace BattleShips
                     {
                         _enemyBoard.GenerateShips(_ships);
                         _curState = GameState.DifficultyAllocation;
+                        draw = true;
                     }
                     break;
             }
@@ -716,17 +715,25 @@ namespace BattleShips
             {
                 //horizontal
                 if (_selected.y == _origin.y && _playerBoard.GetSpaceState(newSel.x, _selected.y) == Board.SpaceStates.empty)
+                {
                     _selected.x = newSel.x;
+                    draw = true;
+                }
 
                 //vertical
                 if (_selected.x == _origin.x && _playerBoard.GetSpaceState(_selected.x, newSel.y) == Board.SpaceStates.empty)
+                {
                     _selected.y = newSel.y;
+                    draw = true;
+                }
             }
             else
             {
                 //move selected
                 _selected = newSel;
+                draw = true;
             }
+            return draw;
         }
 
         private void ShipAlloDraw()
@@ -752,6 +759,7 @@ namespace BattleShips
                     drawLines[_playerBoard.GetYPosStrng(y)] = new string(curLine);
                 }
             }
+            //draw altered board
             Board.DrawStrings(drawLines);
         }
 
@@ -763,54 +771,69 @@ namespace BattleShips
             else
                 Console.WriteLine("You Lost...");
             Console.WriteLine();
-            Program.PrintPadded("Enemy Board", "Your Board", _enemyBoard.WidthString + _padding.Length);
+
+            //label boards
+            GeneralUtils.WritePadded("Enemy Board", Padding);
+            Console.WriteLine("Your Board");
 
             //draw the board
             Board.DrawStrings(Board.CombineStrings(_enemyBoard.GetDrawLines(), _playerBoard.GetDrawLines(), _padding));
 
             //draw stats
             Console.WriteLine();
-            Program.PrintPadded($"Shots Fired: {_enemyBoard.ShotsFired}", $"Shots Fired: {_playerBoard.ShotsFired}", _enemyBoard.WidthString + _padding.Length);
-            Program.PrintPadded($"Hit Rate: {_enemyBoard.HitRate}%", $"Hit Rate: {_playerBoard.HitRate}%", _enemyBoard.WidthString + _padding.Length);
+            GeneralUtils.WritePadded($"Shots Fired: {_enemyBoard.ShotsFired}", Padding);
+            Console.WriteLine($"Shots Fired: {_playerBoard.ShotsFired}");
+            GeneralUtils.WritePadded($"Hit Rate: {_enemyBoard.HitRate}%", Padding);
+            Console.WriteLine($"Hit Rate: {_playerBoard.HitRate}%");
             Console.WriteLine();
             Console.WriteLine($"Game Duration: {Math.Round((float)_timer.ElapsedMilliseconds/1000, 2)} seconds");
         }
 
-        private void GameplayUpdate(ConsoleKey key)
+        private bool GameplayUpdate(ConsoleKey key)
         {
+            var draw = false;
+
+            //start timer if not already running
             if (!_timer.IsRunning)
                 _timer.Start();
 
             //movement
             var move = Vector2.GetMovementVector(key);
+            var curSel = new Vector2(_selected);
             _selected.Add(move);
             _selected.x = Math.Clamp(_selected.x, 0, _enemyBoard.Width-1);
             _selected.y = Math.Clamp(_selected.y, 0, _enemyBoard.Height-1);
+            if (_selected != curSel)
+                draw = true;
 
             //fire
             if (key == ConsoleKey.Spacebar)
             {
                 //fire where player has selected
                 if (!_enemyBoard.FireAt(_selected.x, _selected.y))
-                    return;
+                    return draw;
+
+                //check if player won
                 if (_enemyBoard.Won)
                 {
                     _timer.Stop();
                     _curState = GameState.GameOver;
-                    return;
+                    return true;
                 }
 
-                //keep randomly firing at the player until a viable space is found
+                //fire at player board
                 FireWithDifficulty();
+                draw = true;
 
+                //check if enemy won
                 if (_playerBoard.Won)
                 {
                     _timer.Stop();
                     _curState = GameState.GameOver;
-                    return;
+                    return true;
                 }
-                return;
             }
+            return draw;
         }
 
         private void GameplayDraw()
@@ -821,12 +844,14 @@ namespace BattleShips
             Console.WriteLine();
 
             //draw boards
-            Program.PrintPadded("Enemy Board", "Your Board", _enemyBoard.WidthString + _padding.Length);
+            GeneralUtils.WritePadded("Enemy Board", Padding);
+            Console.WriteLine("Your Board");
             Board.DrawStrings(Board.CombineStrings(_enemyBoard.GetDrawLines(_selected, hidden: true), _playerBoard.GetDrawLines(), _padding), _enemyBoard, _selected);
         }
 
         private void FireWithDifficulty()
         {
+            //choose which method to run, depending on difficulty
             switch (_diffAloMenu.Selected)
             {
                 case 0:
@@ -843,24 +868,34 @@ namespace BattleShips
 
         private void FireHard(int radius = 5)
         {
+            //if there are check around spaces, fire at them
             if (_checkAround.Count() > 0)
             {
                 FireAtCheckAroundSpaces();
                 return;
             }
 
+            //if there aren't, fire a shot around one of the ship spaces
             while(true)
             {
+                //get a random ship position
                 var pos = new Vector2(_shotTargets[Program.RNG.Next(_shotTargets.Count())]);
+
+                //add a random amount to the x and y axis, depending on the provided radius
                 pos.x += Program.RNG.Next(-radius, radius);
                 pos.y += Program.RNG.Next(-radius, radius);
+
+                //after the enemy makes a valid shot
                 if (_playerBoard.FireAt(pos.x, pos.y))
                 {
+                    //check if the hit was a ship
                     if (_playerBoard.GetSpaceState(pos.x, pos.y) == Board.SpaceStates.hit)
                     {
+                        //if so, add check around spaces and remove current shot from targets
                         AddCheckSpaces(pos);
                         _shotTargets.RemoveAll(v => v.Equals(pos));
                     }
+                    //after a successful shot break the loop
                     break;
                 }
             }
@@ -868,12 +903,14 @@ namespace BattleShips
 
         private void FireMedium()
         {
+            //fire at check around spaces, if there are an
             if (_checkAround.Count() > 0)
             {
                 FireAtCheckAroundSpaces();
                 return;
             }
 
+            //fire at a random space, and if hit add check around spaces
             var firedAt = FireEasy();
             if (_playerBoard.GetSpaceState(firedAt.x, firedAt.y) == Board.SpaceStates.hit)
                 AddCheckSpaces(firedAt);
@@ -881,19 +918,23 @@ namespace BattleShips
 
         private void FireAtCheckAroundSpaces()
         {
-            int ind;
+            //get a random position from check around spaces
             Vector2 pos;
-            ind = Program.RNG.Next(_checkAround.Count());
-            pos = new Vector2(_checkAround[ind].x, _checkAround[ind].y);
+            pos = new Vector2(_checkAround[Program.RNG.Next(_checkAround.Count())]);
+
+            //fire at the selected pos, and add check around spaces if hits a ship
             _playerBoard.FireAt(pos.x, pos.y);
             if (_playerBoard.GetSpaceState(pos.x, pos.y) == Board.SpaceStates.hit)
                 AddCheckSpaces(pos);
+
+            //remove shot position from targets and check around spaces
             _checkAround.RemoveAll(v => v.Equals(pos));
             _shotTargets.RemoveAll(v => v.Equals(pos));
         }
 
         private void AddCheckSpaces(Vector2 spaceHit)
         {
+            //get spaces around a hit space
             Vector2[] spacesToCheck =
                 [
                     new Vector2(spaceHit.x-1, spaceHit.y),
@@ -902,6 +943,7 @@ namespace BattleShips
                     new Vector2(spaceHit.x, spaceHit.y+1)
                 ];
 
+            //check if space is empty or a ship, and if so add them to check around spaces
             foreach (var space in spacesToCheck)
             {
                 var state = _playerBoard.GetSpaceState(space.x, space.y);
@@ -912,11 +954,18 @@ namespace BattleShips
 
         private Vector2 FireEasy()
         {
+            //fire at a random shot target and return its position
             var ind = Program.RNG.Next(_shotTargets.Count());
             Vector2 posFired = _shotTargets[ind];
             _playerBoard.FireAt(posFired.x, posFired.y);
             _shotTargets.RemoveAt(ind);
             return posFired;
+        }
+
+        //getters and setters
+        public int Padding
+        {
+            get { return _enemyBoard.WidthString + _padding.Length; }
         }
     }
 }

@@ -14,15 +14,5 @@
         public int Difficulty { get; set; }
         public List<Vector2> CheckAround { get; set; }
         public List<Vector2> ShotTargets { get; set; }
-    
-        public bool Ongoing
-        {
-            get
-            {
-                if (PShipsHit == PShipSpaces || EShipsHit == EShipSpaces)
-                    return false;
-                return true;
-            }
-        }
     }
 }

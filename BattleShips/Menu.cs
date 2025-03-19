@@ -43,7 +43,10 @@
                 Draw = true;
 
             if (key == ConsoleKey.Spacebar || key == ConsoleKey.Enter)
+            {
+                Draw = true;
                 return true;
+            }
             return false;
         }
 

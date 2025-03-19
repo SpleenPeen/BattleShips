@@ -19,7 +19,7 @@ namespace BattleShips
         static History _history;
         static ScreenState _curScrn;
 
-        public static void SwitchScreen(ScreenState screen)
+        public static void SwitchScreen(ScreenState screen, bool loadSave = false)
         {
             //switch screen
             _curScrn = screen;
@@ -32,6 +32,13 @@ namespace BattleShips
                     break;
                 case ScreenState.Game:
                     _gameScreen = new GameScreen();
+                    //load ongoing gamesave, if valid
+                    if (!loadSave)
+                        break;
+                    var save = SaveManager.Instance.GetOngoingSave;
+                    if (save == null)
+                        break;
+                    _gameScreen.LoadSave(save);
                     break;
                 case ScreenState.History:
                     _history = new History();

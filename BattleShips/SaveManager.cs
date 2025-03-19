@@ -7,21 +7,10 @@ using System.Threading.Tasks;
 
 namespace BattleShips
 {
+    // Save manager is a singleton that manages gamesave files in a specified folder
     internal class SaveManager
     {
-        public static SaveManager Instance
-        {
-            get
-            {
-                if (Instance == null)
-                    Instance = new SaveManager();
-                return Instance;
-            }
-            private set
-            {
-                Instance = value;
-            }
-        }
+        private static SaveManager _instance;
         public string SavePath { get; set; }
         public string SaveName { get; set; }
         public int MaxSaves { get; set; }
@@ -35,6 +24,33 @@ namespace BattleShips
         }
 
         #region Methods
+        public void SaveFile(short[][] pSpaces, int pShipSpaces, int pShipsHit, Vector2[] pShots, short[][] eSpaces, int eShipSpaces, int eShipsHit, Vector2[] eShots, long timer, int diff, List<Vector2> shotTargs, List<Vector2> checkAround)
+        {
+            //create a save class and fill out all the variables
+            var save = new GameSave();
+            //player board
+            save.PlayerSpaces = pSpaces;
+            save.PShipSpaces = pShipSpaces;
+            save.PShipsHit = pShipsHit;
+            save.PShots = pShots;
+
+            //enemy board
+            save.EnemySpaces = eSpaces;
+            save.EShipSpaces = eShipSpaces;
+            save.EShipsHit = eShipsHit;
+            save.EShots = eShots;
+
+            //game state
+            save.Timer = timer;
+            save.Difficulty = diff;
+            save.ShotTargets = shotTargs;
+            save.CheckAround = checkAround;
+
+            //convert to json and write file in the save folder
+            var json = JsonSerializer.Serialize(save);
+            File.WriteAllText(SavePath + SaveName + LatestSaveNum, json);
+        }
+
         public void ClearOldSaves()
         {
             //if max saves hasn't been set, return
@@ -63,6 +79,13 @@ namespace BattleShips
 
         public GameSave? GetGameSave(string name)
         {
+            if (Empty)
+                return null;
+
+            if (!Directory.GetFiles(SavePath).Contains(name))
+                return null;
+
+            //deserialise file
             var save = JsonSerializer.Deserialize<GameSave>(File.ReadAllText(SavePath + name));
             if (save == null)
                 return null;
@@ -76,27 +99,30 @@ namespace BattleShips
 
         private bool IsValid(GameSave save)
         {
-            //clamp difficulty
-            save.Difficulty = Math.Clamp(save.Difficulty, 0, 2);
+            //check difficulty
+            if (save.Difficulty < 0 || save.Difficulty > 2)
+                return false;
 
-            //clamp timer
-            save.Timer = Math.Max(save.Timer, 0);
+            //check timer
+            if (save.Timer < 0)
+                return false;
 
             //check height
             if (save.PlayerSpaces.Length != save.EnemySpaces.Length)
                 return false;
 
+            //loop through both boards
             for (int board = 0; board < 2; board++)
             {
                 //switch board on loop
                 var curB = save.PlayerSpaces;
-                var curShots = save.PShots;
+                var curShots = save.PShots.ToList();
                 var curShipS = save.PShipSpaces;
                 var curShipH = save.PShipsHit;
                 if (board == 1)
                 {
                     curB = save.EnemySpaces;
-                    curShots = save.EShots;
+                    curShots = save.EShots.ToList();
                     curShipS = save.EShipSpaces;
                     curShipH = save.EShipsHit;
                 }
@@ -127,15 +153,33 @@ namespace BattleShips
                             {
                                 return false;
                             }
+                            curShots.RemoveAll(v => v.Equals(new Vector2(x,y)));
                         }    
                     }
                 }
 
+                //if the number of ships hit, or number of ships spaces is wrong, return false
                 if (curShipH != 0)
                     return false;
                 if (curShipS != 0)
                     return false;
+
+                //if number of shots was wrong, return false
+                if (curShots.Count != 0)
+                    return false;
             }
+
+
+            return true;
+        }
+
+        public bool IsOngoing(GameSave save)
+        {
+            //check if either board has won
+            if (save.EShipsHit == save.EShipSpaces)
+                return false;
+            if (save.PShipsHit == save.PShipSpaces)
+                return false;
             return true;
         }
         #endregion
@@ -150,7 +194,19 @@ namespace BattleShips
                     return Array.Empty<FileInfo>();
 
                 //return files sorted by creation time (latest -> oldest)
-                return new DirectoryInfo(SavePath).GetFiles().OrderBy(f => f.CreationTime).ToArray();
+                var files = new DirectoryInfo(SavePath).GetFiles().OrderBy(f => f.CreationTime).ToList();
+
+                //remove invalid
+                var toRemove = new List<FileInfo>();
+                foreach (var file in files)
+                {
+                    var save = JsonSerializer.Deserialize<GameSave>(File.ReadAllText(file.FullName));
+                    if (!IsValid(save))
+                        toRemove.Add(file);
+                }
+                files.RemoveAll(toRemove.Contains);
+                
+                return files.ToArray();
             }
         }
     
@@ -186,6 +242,7 @@ namespace BattleShips
         {
             get
             {
+                //check whether directory exists, and whether it has any files
                 if (!Directory.Exists(SavePath))
                     return true;
                 if (Directory.GetFiles(SavePath).Length == 0)
@@ -194,11 +251,29 @@ namespace BattleShips
             }
         }
 
-        public GameSave? LatestSave
+        public GameSave? GetOngoingSave
         {
             get
             {
-                return GetGameSave(FilesByDate[0].Name);
+                var files = FilesByDate;
+                if (files == Array.Empty<FileInfo>())
+                    return null;
+
+                var file = GetGameSave(files[0].Name);
+                if (!IsOngoing(file))
+                    return null;
+                return file;
+            }
+        }
+
+        public static SaveManager Instance
+        {
+            // Sets an instance of itself if empty, otherwise returns the instance
+            get
+            {
+                if (_instance == null)
+                    _instance = new SaveManager();
+                return _instance;
             }
         }
         #endregion

@@ -18,6 +18,7 @@ namespace BattleShips
         static MainMenu _mainScreen;
         static History _history;
         static ScreenState _curScrn;
+        static bool _drawFrame;
 
         public static void SwitchScreen(ScreenState screen, bool loadSave = false)
         {
@@ -67,13 +68,11 @@ namespace BattleShips
             //set initial state
             _curScrn = ScreenState.MainMenu;
 
-            //initialise all the screens
+            //initialise scren
             _mainScreen = new MainMenu();
-            _gameScreen = new GameScreen();
-            _history = new History();
 
             //draw the first frame
-            var drawFrame = true;
+            _drawFrame = true;
 
             while (true)
             {
@@ -84,13 +83,13 @@ namespace BattleShips
                 switch (_curScrn)
                 {
                     case ScreenState.MainMenu:
-                        drawFrame = _mainScreen.Update(curKey);
+                        DrawFrame = _mainScreen.Update(curKey);
                         break;
                     case ScreenState.Game:
-                        drawFrame = _gameScreen.Update(curKey);
+                        DrawFrame = _gameScreen.Update(curKey);
                         break;
                     case ScreenState.History:
-                        drawFrame = _history.Update(curKey);
+                        DrawFrame = _history.Update(curKey);
                         break;
                 }
 
@@ -99,9 +98,9 @@ namespace BattleShips
                     _key = ConsoleKey.None;
 
                 //continue to next frame if not set to draw
-                if (!drawFrame)
+                if (!_drawFrame)
                     continue;
-                drawFrame = false; //reset drawframe
+                _drawFrame = false; //reset drawframe
 
                 //clear screen and run the current screens draw method
                 Console.Clear();
@@ -117,6 +116,15 @@ namespace BattleShips
                         _history.Draw();
                         break;
                 }
+            }
+        }
+
+        private static bool DrawFrame
+        {
+            set
+            {
+                if (value)
+                    _drawFrame = true;
             }
         }
     }

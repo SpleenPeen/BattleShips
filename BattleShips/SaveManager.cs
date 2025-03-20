@@ -48,7 +48,10 @@ namespace BattleShips
 
             //convert to json and write file in the save folder
             var json = JsonSerializer.Serialize(save);
-            File.WriteAllText(SavePath + SaveName + LatestSaveNum, json);
+            var num = LatestSaveNum;
+            if (GetOngoingSave == null)
+                num++;
+            File.WriteAllText(SavePath + SaveName + num, json);
         }
 
         public void ClearOldSaves()
@@ -58,7 +61,7 @@ namespace BattleShips
                 return;
 
             //if file doesn't exist return
-            if (!Directory.Exists(SavePath))
+            if (Empty)
                 return;
 
             var files = FilesByDate;
@@ -82,11 +85,14 @@ namespace BattleShips
             if (Empty)
                 return null;
 
-            if (!Directory.GetFiles(SavePath).Contains(name))
+            var fullName = @$"{SavePath}{name}";
+            var dir = Directory.GetFiles(SavePath);
+
+            if (!Directory.GetFiles(SavePath).Contains(fullName))
                 return null;
 
             //deserialise file
-            var save = JsonSerializer.Deserialize<GameSave>(File.ReadAllText(SavePath + name));
+            var save = JsonSerializer.Deserialize<GameSave>(File.ReadAllText(fullName));
             if (save == null)
                 return null;
 
@@ -195,6 +201,7 @@ namespace BattleShips
 
                 //return files sorted by creation time (latest -> oldest)
                 var files = new DirectoryInfo(SavePath).GetFiles().OrderBy(f => f.CreationTime).ToList();
+                files.Reverse();
 
                 //remove invalid
                 var toRemove = new List<FileInfo>();

@@ -49,6 +49,8 @@ namespace BattleShips
             if (files.Count == 0)
                 return;
 
+            _files = files.ToArray();
+
             //get all file names and send them into menu options
             string[] names = new string[files.Count];
             for (int i = 0; i < files.Count; i++)
@@ -117,20 +119,24 @@ namespace BattleShips
 
             //if SPACE pressed, set play to true
             if (key == ConsoleKey.Spacebar)
+            {
                 _play = !_play;
+                draw = true;
+            }
 
             //Adjust shot speed and current shot using the move vector
             var move = Vector2.GetMovementVector(key);
             var curShot = _shotsPS;
-            _shotsPS += Math.Max(-move.y * 0.1f, 0.1f); //UP/DOWN adjusts shot speed
-            if (curShot != _shotsPS)
+            _shotsPS += -move.y * 0.1f; //UP/DOWN adjusts shot speed
+            _shotsPS = Math.Max(0.1f, _shotsPS); //clamp speed
+            if (!curShot.Equals(_shotsPS))
                 draw = true;
             if (ManualShots(move.x)) //LEFT/RIGHT changes current shot 
                 draw = true;
 
             //if not set to play return, otherwise
             if (!_play)
-                return false;
+                return draw;
 
             //reset to paused if the game is over
             if (_playerBoard.Won || _enemyBoard.Won)
@@ -446,8 +452,12 @@ namespace BattleShips
         public bool Update(ConsoleKey key)
         {
             //check whether to pause
+            var draw = false;
             if (key == ConsoleKey.Escape)
+            {
                 _paused = !_paused;
+                draw = true;
+            }
             //if not pause update current screen
             if (!_paused)
             {
@@ -486,6 +496,8 @@ namespace BattleShips
                             break;
                     }
                 }
+                if (draw)
+                    return true;
                 return _pauseMenu.Draw;
             }
             return false;
@@ -544,6 +556,8 @@ namespace BattleShips
             _shotTargets,
            _checkAround
             );
+
+            SaveManager.Instance.ClearOldSaves();
         }
 
         public void LoadSave(GameSave save)
@@ -716,22 +730,25 @@ namespace BattleShips
                 //horizontal
                 if (_selected.y == _origin.y && _playerBoard.GetSpaceState(newSel.x, _selected.y) == Board.SpaceStates.empty)
                 {
+                    if (_selected.x != newSel.x)
+                        draw = true;
                     _selected.x = newSel.x;
-                    draw = true;
                 }
 
                 //vertical
                 if (_selected.x == _origin.x && _playerBoard.GetSpaceState(_selected.x, newSel.y) == Board.SpaceStates.empty)
                 {
+                    if (_selected.y != newSel.y)
+                        draw = true;
                     _selected.y = newSel.y;
-                    draw = true;
                 }
             }
             else
             {
                 //move selected
+                if (!_selected.Equals(newSel))
+                    draw = true;
                 _selected = newSel;
-                draw = true;
             }
             return draw;
         }
@@ -803,7 +820,7 @@ namespace BattleShips
             _selected.Add(move);
             _selected.x = Math.Clamp(_selected.x, 0, _enemyBoard.Width-1);
             _selected.y = Math.Clamp(_selected.y, 0, _enemyBoard.Height-1);
-            if (_selected != curSel)
+            if (!_selected.Equals(curSel))
                 draw = true;
 
             //fire

@@ -247,7 +247,7 @@ namespace BattleShips
 
         private void DrawSelection()
         {
-            int padding = 10; //padding between file stats
+            int padding = 15; //padding between file stats
 
             //draw instructions
             Console.WriteLine("Press Escape to return to main menu.");
@@ -302,21 +302,15 @@ namespace BattleShips
 
                 var diffString = "Easy";
                 Console.ForegroundColor = ConsoleColor.DarkGreen;
-                if (_selMenu.Selected == i)
-                    Console.ForegroundColor = ConsoleColor.Green;
                 if (save.Difficulty == 1)
                 {
                     diffString = "Medium";
                     Console.ForegroundColor = ConsoleColor.DarkYellow;
-                    if (_selMenu.Selected == i)
-                        Console.ForegroundColor = ConsoleColor.Yellow;
                 }
                 else if (save.Difficulty == 2)
                 {
                     diffString = "Hard";
                     Console.ForegroundColor = ConsoleColor.DarkRed;
-                    if (_selMenu.Selected == i)
-                        Console.ForegroundColor = ConsoleColor.Red;
                 }
                 GeneralUtils.WritePadded(diffString, padding);
                 Console.ForegroundColor = curCol;

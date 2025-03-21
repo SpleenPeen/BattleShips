@@ -437,7 +437,7 @@ namespace BattleShips
                 outline: true,
                 centred: true);
             _pauseMenu = new Menu(
-                options: ["Resume", "Main Menu", "Save and Exit"],
+                options: ["Resume", "Main Menu", "Exit"],
                 outline: true,
                 centred: true
                 );

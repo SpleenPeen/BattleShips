@@ -92,7 +92,15 @@ namespace BattleShips
                 return null;
 
             //deserialise file
-            var save = JsonSerializer.Deserialize<GameSave>(File.ReadAllText(fullName));
+            GameSave? save;
+            try
+            {
+                save = JsonSerializer.Deserialize<GameSave>(File.ReadAllText(fullName));
+            }
+            catch
+            {
+                save = null;
+            }
             if (save == null)
                 return null;
 
@@ -200,18 +208,38 @@ namespace BattleShips
                     return Array.Empty<FileInfo>();
 
                 //return files sorted by creation time (latest -> oldest)
-                var files = new DirectoryInfo(SavePath).GetFiles().OrderBy(f => f.CreationTime).ToList();
+                List<FileInfo> files = new DirectoryInfo(SavePath).GetFiles().OrderBy(f => f.CreationTime).ToList();
                 files.Reverse();
 
                 //remove invalid
-                var toRemove = new List<FileInfo>();
-                foreach (var file in files)
+                //loop through all files
+                for (int i = 0; i < files.Count; i++)
                 {
-                    var save = JsonSerializer.Deserialize<GameSave>(File.ReadAllText(file.FullName));
+                    //try to deserialise current file
+                    GameSave? save;
+                    try
+                    {
+                        save = JsonSerializer.Deserialize<GameSave>(File.ReadAllText(files[i].FullName));
+                    }
+                    catch
+                    {
+                        save = null;
+                    }
+
+                    //if failed to deserialise, set current file entry to null and continue
+                    if (save == null)
+                    {
+                        files[i] = null;
+                        continue;
+                    }
+
+                    //check if save file is valid
                     if (!IsValid(save))
-                        toRemove.Add(file);
+                        files[i] = null;
                 }
-                files.RemoveAll(toRemove.Contains);
+
+                //remove all files that were found to be invalid
+                files.RemoveAll(v => v == null);
                 
                 return files.ToArray();
             }

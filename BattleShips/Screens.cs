@@ -550,8 +550,6 @@ namespace BattleShips
             _shotTargets,
            _checkAround
             );
-
-            SaveManager.Instance.ClearOldSaves();
         }
 
         public void LoadSave(GameSave save)

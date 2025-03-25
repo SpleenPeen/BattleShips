@@ -51,7 +51,12 @@ namespace BattleShips
             var num = LatestSaveNum;
             if (GetOngoingSave == null)
                 num++;
+
+            if (!Directory.Exists(SavePath))
+                Directory.CreateDirectory(SavePath);
             File.WriteAllText(SavePath + SaveName + num, json);
+
+            ClearOldSaves();
         }
 
         public void ClearOldSaves()
@@ -60,7 +65,7 @@ namespace BattleShips
             if (MaxSaves <= 0)
                 return;
 
-            //if file doesn't exist return
+            //if directory is empty or doesn't exist, return
             if (Empty)
                 return;
 

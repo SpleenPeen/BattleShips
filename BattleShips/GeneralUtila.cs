@@ -37,5 +37,12 @@ namespace BattleShips
             if (nextLine)
                 Console.WriteLine();
         }
+
+        public static void ChangeIfTrue(ref bool val, bool change)
+        {
+            //only changes bool value if true
+            if (change)
+                val = true;
+        }
     }
 }

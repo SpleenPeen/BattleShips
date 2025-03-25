@@ -1,5 +1,6 @@
 ﻿namespace BattleShips
 {
+    //A class outlining the savefile structure
     public class GameSave
     {
         public short[][] PlayerSpaces { get; set; }

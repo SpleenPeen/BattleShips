@@ -83,13 +83,13 @@ namespace BattleShips
                 switch (_curScrn)
                 {
                     case ScreenState.MainMenu:
-                        DrawFrame = _mainScreen.Update(curKey);
+                        GeneralUtils.ChangeIfTrue(ref _drawFrame, _mainScreen.Update(curKey));
                         break;
                     case ScreenState.Game:
-                        DrawFrame = _gameScreen.Update(curKey);
+                        GeneralUtils.ChangeIfTrue(ref _drawFrame, _gameScreen.Update(curKey));
                         break;
                     case ScreenState.History:
-                        DrawFrame = _history.Update(curKey);
+                        GeneralUtils.ChangeIfTrue(ref _drawFrame, _history.Update(curKey));
                         break;
                 }
 
@@ -116,15 +116,6 @@ namespace BattleShips
                         _history.Draw();
                         break;
                 }
-            }
-        }
-
-        private static bool DrawFrame
-        {
-            set
-            {
-                if (value)
-                    _drawFrame = true;
             }
         }
     }

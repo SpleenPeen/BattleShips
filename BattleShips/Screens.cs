@@ -458,13 +458,17 @@ namespace BattleShips
                 switch (_curState)
                 {
                     case GameState.BoardAllocation:
-                        return BoardAlloUpdate(key);
+                        GeneralUtils.ChangeIfTrue(ref draw, BoardAlloUpdate(key));
+                        return draw;
                     case GameState.ShipAllocation:
-                        return ShipAlloUpdate(key);
+                        GeneralUtils.ChangeIfTrue(ref draw, ShipAlloUpdate(key));
+                        return draw;
                     case GameState.DifficultyAllocation:
-                        return DifficultyAlloUpdate(key);
+                        GeneralUtils.ChangeIfTrue(ref draw, DifficultyAlloUpdate(key));
+                        return draw;
                     case GameState.Gameplay:
-                        return GameplayUpdate(key);
+                        GeneralUtils.ChangeIfTrue(ref draw, GameplayUpdate(key));
+                        return draw;
                 }
             }
             //otherwise update the pause menu
@@ -494,7 +498,7 @@ namespace BattleShips
                     return true;
                 return _pauseMenu.Draw;
             }
-            return false;
+            return draw;
         }
 
         private bool Savable

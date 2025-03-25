@@ -25,16 +25,20 @@ namespace BattleShips
 
         static char[] _displaySymbols = ['X', '*', 'O', 'H'];
 
+        //Constructor for initialising from an ongoing savefile
         public Board(short[][] spaces, int shipSpaces, int shipsHit, LinkedList<Vector2> shots)
         {
+            //initialise variables
             ConvertShortsToSpaces(spaces);
             _shipSpaces = shipSpaces;
             _shipsHit = shipsHit;
             _shots = shots;
         }
 
+        //Default constructor
         public Board(int width = 10, int height = 10)
         {
+            //initialise variables
             _shots = new LinkedList<Vector2>();
             _shipSpaces = 0;
             _shipsHit = 0;
@@ -43,7 +47,10 @@ namespace BattleShips
 
         private void ConvertShortsToSpaces(short[][] spaces)
         {
+            //set spaces array size to the array of shorts dimensions
             _spaces = new SpaceStates[spaces.Length, spaces[0].Length];
+
+            //loop through each field, convert the short to the enum and add to spaces matrix
             for (int y = 0; y < spaces.Length; y++)
             {
                 for (int x = 0; x < spaces[y].Length; x++)
@@ -53,32 +60,19 @@ namespace BattleShips
             }
         }
 
-        public void SetSize(int width, int height, bool keepShips = false)
+        public void SetSize(int width, int height)
         {
+            //prevent changing to 0x0 matrix
             if (width == 0 || height == 0)
                 return;
 
-            var newSpaces = new SpaceStates[height, width];
-
-            if (_spaces == null || !keepShips)
-            {
-                _spaces = newSpaces;
-                return;
-            }
-
-            for (int y = 0; y < Math.Min(_spaces.GetLength(0), height); y++)
-            {
-                for (int x = 0; x < Math.Min(_spaces.GetLength(1), width); x++)
-                {
-                    newSpaces[x,y] = _spaces[x,y];
-                }
-            }
-
-            _spaces = newSpaces;
+            //set new spaces to given dimensions
+            _spaces = new SpaceStates[height, width];
         }
 
         public bool FireAt(int x, int y, bool replay = false)
         {
+            //if trying to fire out of bounds, return false
             if (!WithinBounds(new Vector2(x,y)))
                 return false;
 
@@ -151,6 +145,7 @@ namespace BattleShips
 
         public static string[] CombineStrings(string[] str1, string[] str2, string padding = "")
         {
+            //combine the string arrays with padding inbetween
             string[] combined = new string[str1.Length];
             for (int i = 0; i < str1.Length; i++)
             {
@@ -177,41 +172,56 @@ namespace BattleShips
             }
         }
 
-        private void SortShips(List<Vector2> ships)
+        private void SortShips(ref List<Vector2> ships)
         {
-            //sorting list
-            List<Vector2> sortedList = new List<Vector2>();
-            sortedList.Add(ships[0]);
+            //add first entry to sorted list
+            List<Vector2> sortedList = [ships[0]];
+
+            //loop through all ships
             for (int i = 1; i < ships.Count; i++)
             {
+                //initialise variables
                 int max = 0;
                 int min = sortedList.Count() - 1;
                 int curInd;
 
+                //loop until you find a spot to add the ship
                 while (true)
                 {
+                    //set curent index to halfway between min and max
                     if (min == max)
                         curInd = min;
                     else
                         curInd = max + (min - max) / 2;
 
+                    //check if current ship is smaller than the entry in sorted ships at curind
                     if (ships[i].y < sortedList[curInd].y)
                     {
+                        //if the difference between min and max is 1, increase max by 1
                         if (max == curInd && min != max)
                         {
                             max++;
                             continue;
                         }
+
+                        //change max index
                         max = curInd;
+
+                        //if max and min are equal, insert the ship in front of the current index
                         if (min == max)
                         {
                             sortedList.Insert(curInd+1, ships[i]);
                             break;
                         }
                     }
+
+                    //cehck if current ship is larger than the sorted ships entry at curind
                     else if (ships[i].y > sortedList[curInd].y)
                     {
+                        //set min to the current index
                         min = curInd;
+
+                        //if min and max are equal, insert ship behind the current ship
                         if (min == max)
                         {
                             sortedList.Insert(curInd, ships[i]);
@@ -220,13 +230,14 @@ namespace BattleShips
                     }
                 }
             }
+            //set ships to the sorted list
             ships = sortedList;
         }
 
         public void GenerateShips(List<Vector2> ships) //ship.x == amount of ships that size, ships.y == size of ship
         {
             //sort ships
-            SortShips(ships);
+            SortShips(ref ships);
 
             //calculate ship spaces - could be done while changing spaces, but it has a miniscule impact on performence
             foreach (Vector2 ship in ships)
@@ -337,6 +348,7 @@ namespace BattleShips
 
         private string GetInbetweenLine()
         {
+            //returns a string for drawing lines inbetween spaces
             string str = "";
             for (int x = 0; x < _spaces.GetLength(1); x++)
             {
@@ -381,6 +393,7 @@ namespace BattleShips
                             break;
                     }
 
+                    //change space to H if selected
                     if (sel != null && sel.x == x && sel.y == y)
                         fieldContent = "H";
 
@@ -398,30 +411,40 @@ namespace BattleShips
 
         public int GetXPosStrng(int x)
         {
+            //returns the position of the position in drawstring based on space x position
             return 2 + 4 * x;
         }
 
         public int GetYPosStrng(int y)
         {
+            //returns the position of the position in drawstring based on space y position
             return 1 + 2 * y;
         }
 
         public SpaceStates? GetSpaceState(int x, int y)
         {
+            //if out of bounds return null
             if (!WithinBounds(new Vector2(x, y)))
                 return null;
+            //otherwise return space entry
             return _spaces[y, x];
         }
 
         public void SetSpaceStatus(int x, int y, SpaceStates state)
         {
-            _spaces[y, x] = state;
-            if (state == SpaceStates.ship)
+            //add/reduce ship spaces accordingly
+            if (state != SpaceStates.ship && _spaces[y, x] == SpaceStates.ship)
+                _shipSpaces--;
+            if (state == SpaceStates.ship && _spaces[y,x] != SpaceStates.ship)
                 _shipSpaces++;
+
+            //change space
+            _spaces[y, x] = state;
         }
 
         public void PrepForReplay()
         {
+            //reset all the hits and misses to empty and ship spaces
             for (int y = 0; y < Height; y++)
             {
                 for (int x = 0; x < Width; x++)
@@ -431,6 +454,7 @@ namespace BattleShips
 
         public Vector2 FireReplay()
         {
+            //fire shot in the bottom of queue
             var shot = _shots.First.Value;
             FireAt(shot.x, shot.y, true);
             _shots.RemoveFirst();
@@ -439,12 +463,14 @@ namespace BattleShips
 
         public void UndoShot(Vector2 shot)
         {
+            //add shot to the bottom of queue
             _shots.AddFirst(shot);
             UndoHit(shot.x, shot.y);
         }
 
         private void UndoHit(int x, int y)
         {
+            //change hit spaces to ship and misses to empty, changing shipshit accordingly
             var curState = _spaces[y, x];
             switch (curState)
             {
@@ -460,6 +486,7 @@ namespace BattleShips
 
         public bool WithinBounds(Vector2 pos)
         {
+            //check if coordinates within bounds
             if (pos.x < 0 || pos.x >= Width)
                 return false;
             if (pos.y < 0 || pos.y >= Height)
@@ -469,6 +496,7 @@ namespace BattleShips
 
         public short[][] SpacesNum
         {
+            //returns shipspaces as an array of shorts
             get
             {
                 short[][] outpt = new short[Height][];
@@ -484,6 +512,8 @@ namespace BattleShips
             }
         }
 
+
+        //getter and setters
         public static char HitChar
         {
             get { return _displaySymbols[0]; }

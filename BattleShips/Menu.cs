@@ -14,6 +14,7 @@
 
         public Menu(string[] options, string desc = "", int selected = 0, int width = 0, bool outline = false, bool centred = false)
         {
+            //initialise variables
             _centred = centred;
             _outline = outline;
             _opts = options;
@@ -33,11 +34,13 @@
 
         public bool UpdateMenu(ConsoleKey key)
         {
+            //set draw to true when moving selection or selecting an option
             Draw = false;
             
             var move = Vector2.GetMovementVector(key);
 
             var curSel = _sel;
+            //prevent sel from going out of bounds
             _sel = Math.Clamp(_sel + move.y, 0, _opts.Length-1);
             if (curSel != _sel)
                 Draw = true;
@@ -52,6 +55,7 @@
 
         private void CentreLeftPos()
         {
+            //get x position of centre of window for draw
             if (!_centred)
                 return;
             Console.SetCursorPosition(Console.WindowWidth/2-(_width+2)/2, Console.GetCursorPosition().Top);
@@ -182,6 +186,7 @@
             CentreLeftPos();
         }
 
+        //Getter and Setters
         public int Count
         {
             get { return _opts.Length; }
